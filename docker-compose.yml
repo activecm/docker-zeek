@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  zeek:
+    image: activecm/zeekctl
+    build: .
+    cap_add:
+      - net_raw
+    network_mode: host
+    #volumes:
+      #- ./logs:/usr/local/zeek/logs
+      #- /opt/zeek/logs:/usr/local/zeek/logs
+      #- ./node.cfg:/usr/local/zeek/etc/node.cfg
+      #- /opt/zeek/etc/node.cfg:/usr/local/zeek/etc/node.cfg
+      #- /opt/zeek/share/zeek/site/local/zeek:/usr/local/zeek/share/zeek/site/local.zeek

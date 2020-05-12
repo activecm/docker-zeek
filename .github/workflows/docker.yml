@@ -14,6 +14,5 @@ jobs:
       uses: whoan/docker-build-with-cache-action@v5
       with:
         username: ethack
-        password: "${{ secrets.GITHUB_TOKEN }}"
-        registry: docker.pkg.github.com
+        password: "${{ secrets.DOCKERHUB_TOKEN }}"
         image_name: zeek

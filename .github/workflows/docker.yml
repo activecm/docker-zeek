@@ -11,7 +11,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Publish the docker image
-      uses: matootie/github-docker@v2.2.2
+    - uses: whoan/docker-build-with-cache-action@v5
       with:
-        accessToken: ${{ secrets.GITHUB_TOKEN }}
-        imageTag: latest
+        username: ethack
+        password: "${{ secrets.GITHUB_TOKEN }}"
+        registry: docker.pkg.github.com
+        image_name: zeek

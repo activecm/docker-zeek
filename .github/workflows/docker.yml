@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Publish the docker image
-    - uses: whoan/docker-build-with-cache-action@v5
+      uses: whoan/docker-build-with-cache-action@v5
       with:
         username: ethack
         password: "${{ secrets.GITHUB_TOKEN }}"

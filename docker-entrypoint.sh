@@ -17,7 +17,6 @@ diag() {
 	zeekctl diag
 	trap - ERR
 }
-
 trap 'diag' ERR
 
 # ensure Zeek has a valid, updated config, and then start Zeek

@@ -52,26 +52,38 @@ RUN echo "===> Shrinking image..." \
 
 RUN echo "===> Size of the Zeek install..." \
   && du -sh /usr/local/zeek
+
 ####################################################################################################
 FROM alpine:3.11
 
 # python & bash are needed for zeekctl scripts
 # util-linux provides taskset command needed to pin CPUs
-RUN apk --no-cache add ca-certificates zlib openssl libstdc++ libpcap libmaxminddb libgcc fts python bash util-linux
+# py-pip and git are needed for zeek's package manager
+RUN apk --no-cache add \
+  ca-certificates zlib openssl libstdc++ libpcap libmaxminddb libgcc fts \
+  python bash \
+  util-linux \
+  py-pip git
 
 COPY --from=builder /usr/local/zeek /usr/local/zeek
-COPY local.zeek /usr/local/zeek/share/zeek/site/local.zeek
 COPY zeekctl-cron.sh /etc/periodic/15min/zeekctl-cron.sh
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
-WORKDIR /pcap
-
-ENV ZEEKPATH .:/data/config:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
+ENV ZEEKPATH .:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
 ENV PATH $PATH:/usr/local/zeek/bin
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# install Zeek package manager
+RUN pip install zkg \
+  && zkg autoconfig \
+  && zkg refresh \
+  && zkg install --force \ 
+     bro-interface-setup \
+     bro-doctor
 
-# /usr/local/zeek/logs
-# /usr/local/zeek/etc/node.cfg
-# /usr/local/zeek/share/zeek/site/local.zeek
+# These will get overwritten by volume bind mounts
+COPY etc/networks.cfg /usr/local/zeek/etc/networks.cfg
+COPY etc/node.cfg /usr/local/zeek/etc/node.cfg
+COPY etc/zeekctl.cfg /usr/local/zeek/etc/zeekctl.cfg
+COPY share/zeek/site/local.zeek /usr/local/zeek/share/zeek/site/local.zeek
 
+CMD ["/docker-entrypoint.sh"]

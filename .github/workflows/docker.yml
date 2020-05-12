@@ -1,0 +1,17 @@
+name: Publish Docker Image to Github Packages
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Publish the docker image
+      uses: matootie/github-docker@v2.2.2
+      with:
+        accessToken: ${{ secrets.GITHUB_TOKEN }}
+        imageTag: latest

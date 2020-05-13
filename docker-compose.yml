@@ -11,22 +11,25 @@ services:
 
     volumes:
       - type: bind
-        source: ./logs
+        source: ./logs   # Edit this to the path you want zeek logs to be written
         target: /usr/local/zeek/logs
-
-      - type: bind
-        source: ./etc/networks.cfg
-        target: /usr/local/zeek/etc/networks.cfg
 
       - type: bind
         source: ./etc/node.cfg
         target: /usr/local/zeek/etc/node.cfg
 
-      - type: bind
-        source: ./etc/zeekctl.cfg
-        target: /usr/local/zeek/etc/zeekctl.cfg
+      # Uncomment this block if you want to customize the zeek scripts loaded
+      #- type: bind
+      #  source: ./share/zeek/site/local.zeek
+      #  target: /usr/local/zeek/share/zeek/site/local.zeek
 
-      - type: bind
-        source: ./share/zeek/site/local.zeek
-        target: /usr/local/zeek/share/zeek/site/local.zeek
+      # Uncomment this block if you want to customize your internal network ranges
+      #- type: bind
+      #  source: ./etc/networks.cfg  # Edit this file with your custom networks
+      #  target: /usr/local/zeek/etc/networks.cfg
+
+      # Uncomment this block if you want to customize zeekctl settings (unlikely)
+      #- type: bind
+      #  source: ./etc/zeekctl.cfg
+      #  target: /usr/local/zeek/etc/zeekctl.cfg
 

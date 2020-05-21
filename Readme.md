@@ -16,7 +16,7 @@ If you don't already have a `node.cfg` file you can use the following commands t
 touch node.cfg
 docker run --rm -it --network host \
     --mount source=$(pwd)/node.cfg,destination=/node.cfg,type=bind \
-    ethack/zeek \
+    activecm/zeek \
     zeekcfg -o /node.cfg
 ```
 
@@ -28,7 +28,7 @@ docker run --cap-add net_raw --cap-add net_admin --network host --detach \
     --mount source=/etc/localtime,destination=/etc/localtime,type=bind,readonly \
     --mount source=YOURLOGS,destination=/usr/local/zeek/logs/,type=bind \
     --mount source=YOURCFG,destination=/usr/local/zeek/etc/node.cfg,type=bind \
-    ethack/zeek
+    activecm/zeek
 ```
 
 Replace `YOURLOGS` with the absolute path on your host system you want Zeek logs written to. Replace `YOURCFG` with the absolute path to your `node.cfg` file. For example:
@@ -39,7 +39,7 @@ docker run ---cap-add net_raw --cap-add net_admin --network host --detach \
     --mount source=/etc/localtime,destination=/etc/localtime,type=bind,readonly \
     --mount source=$(pwd)/logs,destination=/usr/local/zeek/logs/,type=bind \
     --mount source=$(pwd)/node.cfg,destination=/usr/local/zeek/etc/node.cfg,type=bind \
-    ethack/zeek
+    activecm/zeek
 ```
 
 Here are several locations in the container that you may want to customize by mounting your own files or directories:
@@ -59,7 +59,7 @@ docker stop zeek -t 90
 ## Updating
 
 ```
-docker pull ethack/zeek
+docker pull activecm/zeek
 
 # Don't forget to recreate your container
 ```

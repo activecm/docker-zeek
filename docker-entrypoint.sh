@@ -3,6 +3,20 @@
 # exit script if an error is encountered
 set -e
 
+if [ ! -f /usr/local/zeek/etc/node.cfg ] || [ ! -s /usr/local/zeek/etc/node.cfg ]; then
+	# node.cfg doesn't exist or is empty
+	if [ -t 0 ]; then
+	    # at a tty, so start the config wizard
+		zeekcfg -o /usr/local/zeek/etc/node.cfg --type afpacket --processes 0 --no-pin
+	fi
+	if [ ! -f /usr/local/zeek/etc/node.cfg ] || [ ! -s /usr/local/zeek/etc/node.cfg ]; then
+		# if still doesn't exist
+		echo
+		echo "You must first create a node.cfg file and mount it into the container."
+		exit 1
+	fi
+fi
+
 # do final log rotation
 stop() {
 	echo "Stopping zeek..."
@@ -20,7 +34,8 @@ diag() {
 trap 'diag' ERR
 
 # ensure Zeek has a valid, updated config, and then start Zeek
-zeekctl check
+echo "Checking your Zeek configuration..."
+zeekctl check >/dev/null
 zeekctl install
 zeekctl start
 
@@ -35,5 +50,5 @@ trap - ERR
 # daemonize cron but log output to stdout
 crond -b -L /dev/fd/1
 
-# infinite loop to prevent container from exiting and allow processing of signals
+# infinite loop to prevent container from exiting and allow this script to process signals
 while :; do sleep 1s; done

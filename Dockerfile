@@ -57,17 +57,19 @@ RUN echo "===> Size of the Zeek install..." \
 FROM alpine:3.11
 
 # python & bash are needed for zeekctl scripts
+# ethtool is needed to manage interface features
 # util-linux provides taskset command needed to pin CPUs
 # py-pip and git are needed for zeek's package manager
 RUN apk --no-cache add \
   ca-certificates zlib openssl libstdc++ libpcap libmaxminddb libgcc fts \
   python bash \
+  ethtool \
   util-linux \
   py-pip git
 
+RUN ln -s $(which ethtool) /sbin/ethtool
+
 COPY --from=builder /usr/local/zeek /usr/local/zeek
-COPY zeekctl-cron.sh /etc/periodic/15min/zeekctl-cron.sh
-COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 ENV ZEEKPATH .:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
 ENV PATH $PATH:/usr/local/zeek/bin
@@ -80,10 +82,19 @@ RUN pip install zkg \
      bro-interface-setup \
      bro-doctor
 
-# These will get overwritten by volume bind mounts
+ENV ZEEKCFG_VERSION 0.0.3
+
+RUN wget -qO /usr/local/zeek/bin/zeekcfg https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_amd64 \
+ && chmod +x /usr/local/zeek/bin/zeekcfg && echo
+COPY zeekctl-cron.sh /etc/periodic/15min/zeekctl-cron.sh
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+
+# These will get overwritten by bind mounts
 COPY etc/networks.cfg /usr/local/zeek/etc/networks.cfg
-COPY etc/node.cfg /usr/local/zeek/etc/node.cfg
+RUN rm -f /usr/local/zeek/etc/node.cfg
 COPY etc/zeekctl.cfg /usr/local/zeek/etc/zeekctl.cfg
 COPY share/zeek/site/local.zeek /usr/local/zeek/share/zeek/site/local.zeek
 
 CMD ["/docker-entrypoint.sh"]
+
+VOLUME /usr/local/zeek/logs

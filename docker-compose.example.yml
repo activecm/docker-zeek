@@ -7,15 +7,21 @@ services:
 
     cap_add:
       - net_raw
+      - net_admin
     network_mode: host
 
     volumes:
       - type: bind
-        source: ./logs   # Edit this to the path you want zeek logs to be written
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+
+      - type: bind
+        source: ${LOGS:-./logs}   # Edit this to the path you want zeek logs to be written
         target: /usr/local/zeek/logs
 
       - type: bind
-        source: ./etc/node.cfg
+        source: ${NODCFG:-./etc/node.sample.cfg}
         target: /usr/local/zeek/etc/node.cfg
 
       # Uncomment this block if you want to customize the zeek scripts loaded

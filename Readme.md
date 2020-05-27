@@ -8,6 +8,14 @@ This project is meant to run a single-system Zeek cluster inside of a docker con
 - Performance improvement with AF_Packet plugin installed and enabled by default in the configuration wizard
 - Performance improvement by using `ethtool` to disable certain interface features by default
 
+You'll first need Docker. If you don't already have it here is a quick and dirty way to install it on Linux:
+
+```
+curl -fsSL https://get.docker.com | sh -
+```
+
+Otherwise, follow the [install instructions](https://docs.docker.com/get-docker/) for your operating system.
+
 ## Configuring
 
 If you don't already have a `node.cfg` file you can use the following commands to generate one.
@@ -25,6 +33,7 @@ docker run --rm -it --network host \
 ```bash
 docker run --cap-add net_raw --cap-add net_admin --network host --detach \
     --name zeek \
+    --restart always \
     --mount source=/etc/localtime,destination=/etc/localtime,type=bind,readonly \
     --mount source=YOURLOGS,destination=/usr/local/zeek/logs/,type=bind \
     --mount source=YOURCFG,destination=/usr/local/zeek/etc/node.cfg,type=bind \
@@ -34,8 +43,9 @@ docker run --cap-add net_raw --cap-add net_admin --network host --detach \
 Replace `YOURLOGS` with the absolute path on your host system you want Zeek logs written to. Replace `YOURCFG` with the absolute path to your `node.cfg` file. For example:
 
 ```bash
-docker run ---cap-add net_raw --cap-add net_admin --network host --detach \
+docker run --cap-add net_raw --cap-add net_admin --network host --detach \
     --name zeek \
+    --restart always \
     --mount source=/etc/localtime,destination=/etc/localtime,type=bind,readonly \
     --mount source=$(pwd)/logs,destination=/usr/local/zeek/logs/,type=bind \
     --mount source=$(pwd)/node.cfg,destination=/usr/local/zeek/etc/node.cfg,type=bind \
@@ -45,6 +55,7 @@ docker run ---cap-add net_raw --cap-add net_admin --network host --detach \
 Here are several locations in the container that you may want to customize by mounting your own files or directories:
 
 * `/usr/local/zeek/logs/` - Directory where Zeek's logs are written.
+* `/usr/local/zeek/spool/` - Directory where Zeek's logs are written before they are archived and moved to `/usr/local/zeek/logs/`. (i.e. the "current" logs)
 * `/usr/local/zeek/etc/node.cfg` - Zeek's cluster configuration including how many workers and which interfaces to capture from. You need to customize this file with your desired sniffing network interface name at the very least.
 * `/usr/local/zeek/etc/networks.cfg` - Internal network range definitions. If you have internal network ranges other than the standard RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) you can add them here.
 * `/usr/local/zeek/etc/zeekctl.cfg` - Zeekctl settings. If you don't have a dedicated sniffing interface you'll want to disable the `interfacesetup.enabled` in this file.
@@ -55,6 +66,8 @@ Here are several locations in the container that you may want to customize by mo
 ```
 docker stop zeek -t 90
 ```
+
+Note: the `-t 90` is to give Zeek enough time to rotate and archive the current logs. If you leave this off docker only gives 10 seconds and there's a chance that you could lose up to an hour of log data (since the last log rotation). If your logs are particularly large, you may have to increase the value greater than 90 seconds.
 
 ## Updating
 

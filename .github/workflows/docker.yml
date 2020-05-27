@@ -1,0 +1,36 @@
+name: Publish Docker Images
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  feature:
+    name: Build Zeek feature release
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: docker/build-push-action@v1
+      with:
+      repository: activecm/zeek
+      tags: latest,3.1,3.1.3
+      build_args: ZEEK_VERSION=3.1.3
+      username: ${{ secrets.DOCKER_USERNAME }}
+      password: ${{ secrets.DOCKER_TOKEN }}
+
+  lts:
+    name: Build Zeek LTS release
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: docker/build-push-action@v1
+      with:
+      repository: activecm/zeek
+      tags: 3,3.0,3.0.6
+      build_args: ZEEK_VERSION=3.0.6
+      username: ${{ secrets.DOCKER_USERNAME }}
+      password: ${{ secrets.DOCKER_TOKEN }}

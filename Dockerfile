@@ -1,6 +1,6 @@
 FROM alpine:3.11 as builder
 
-ENV ZEEK_VERSION 3.1.1
+ARG ZEEK_VERSION=3.1.3
 
 RUN apk add --no-cache zlib openssl libstdc++ libpcap libgcc
 RUN apk add --no-cache -t .build-deps \
@@ -82,16 +82,17 @@ RUN pip install zkg \
      bro-interface-setup \
      bro-doctor
 
-ENV ZEEKCFG_VERSION 0.0.3
+ARG ZEEKCFG_VERSION=0.0.3
 
 RUN wget -qO /usr/local/zeek/bin/zeekcfg https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_amd64 \
- && chmod +x /usr/local/zeek/bin/zeekcfg && echo
-COPY zeekctl-cron.sh /etc/periodic/15min/zeekctl-cron.sh
+ && chmod +x /usr/local/zeek/bin/zeekcfg
+# Run zeekctl cron to heal processes every 5 minutes
+RUN echo "*/5       *       *       *       *       /usr/local/zeek/bin/zeekctl cron" >> /etc/crontabs/root
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
-# These will get overwritten by bind mounts
-COPY etc/networks.cfg /usr/local/zeek/etc/networks.cfg
+# Users must supply their own node.cfg
 RUN rm -f /usr/local/zeek/etc/node.cfg
+COPY etc/networks.cfg /usr/local/zeek/etc/networks.cfg
 COPY etc/zeekctl.cfg /usr/local/zeek/etc/zeekctl.cfg
 COPY share/zeek/site/local.zeek /usr/local/zeek/share/zeek/site/local.zeek
 

@@ -8,6 +8,8 @@ This project is meant to run a single-system Zeek cluster inside of a docker con
 - Performance improvement with AF_Packet plugin installed and enabled by default in the configuration wizard
 - Performance improvement by using `ethtool` to disable certain interface features by default
 
+## Quickstart
+
 You'll first need Docker. If you don't already have it here is a quick and dirty way to install it on Linux:
 
 ```
@@ -15,6 +17,21 @@ curl -fsSL https://get.docker.com | sh -
 ```
 
 Otherwise, follow the [install instructions](https://docs.docker.com/get-docker/) for your operating system.
+
+You can then use the `run.sh` script quickly get Zeek running.
+
+```bash
+./run.sh
+```
+
+You can also specify a custom location for your log files and interface config file (node.cfg).
+
+```bash
+# Will store logs in /opt/zeek/logs
+./run.sh /opt/zeek/logs
+# Will store logs in /opt/zeek/logs and config in /opt/zeek/etc/node.cfg
+./run.sh /opt/zeek/logs /opt/zeek/etc/node.cfg
+```
 
 ## Configuring
 
@@ -25,7 +42,7 @@ touch node.cfg
 docker run --rm -it --network host \
     --mount source=$(pwd)/node.cfg,destination=/node.cfg,type=bind \
     activecm/zeek \
-    zeekcfg -o /node.cfg
+    zeekcfg -o /node.cfg --type afpacket
 ```
 
 ## Starting

@@ -3,6 +3,12 @@ name: Publish Docker Images
 on:
   push:
     branches: [ master ]
+    paths:
+      # Paths that trigger a docker image build
+      - 'etc/**'
+      - 'share/**'
+      - 'docker-entrypoint.sh'
+      - 'Dockerfile'
 
 jobs:
   feature:

@@ -30,7 +30,7 @@ jobs:
     - uses: docker/build-push-action@v1
       with:
         repository: activecm/zeek
-        tags: 3,3.0,3.0.6
+        tags: lts,3,3.0,3.0.6
         build_args: ZEEK_VERSION=3.0.6
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}

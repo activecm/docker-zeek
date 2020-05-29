@@ -8,6 +8,13 @@ This project is meant to run a single-system Zeek cluster inside of a docker con
 - Performance improvement with AF_Packet plugin installed and enabled by default in the configuration wizard
 - Performance improvement by using `ethtool` to disable certain interface features by default
 
+## Supported Docker Tags
+
+The docker tags correspond with the version of [Zeek](https://zeek.org/get-zeek/) installed in the image. Zeek currently has two release tracks: feature and lts.
+
+* `latest`, `3.1`, `3.1.3`
+* `lts`, `3,3.0`, `3.0.6`
+
 ## Quickstart
 
 You'll first need Docker. If you don't already have it here is a quick and dirty way to install it on Linux:

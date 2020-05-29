@@ -13,7 +13,7 @@ This project is meant to run a single-system Zeek cluster inside of a docker con
 The docker tags correspond with the version of [Zeek](https://zeek.org/get-zeek/) installed in the image. Zeek currently has two release tracks: feature and lts.
 
 * `latest`, `3.1`, `3.1.3`
-* `lts`, `3,3.0`, `3.0.6`
+* `lts`, `3`, `3.0`, `3.0.6`
 
 ## Quickstart
 
@@ -25,7 +25,7 @@ curl -fsSL https://get.docker.com | sh -
 
 Otherwise, follow the [install instructions](https://docs.docker.com/get-docker/) for your operating system.
 
-You can then use the `run.sh` script quickly get Zeek running.
+You can then use the `run.sh` script to quickly get Zeek running.
 
 ```bash
 ./run.sh

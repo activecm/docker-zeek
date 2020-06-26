@@ -82,7 +82,7 @@ RUN pip install zkg \
      bro-interface-setup \
      bro-doctor
 
-ARG ZEEKCFG_VERSION=0.0.4
+ARG ZEEKCFG_VERSION=0.0.5
 
 RUN wget -qO /usr/local/zeek/bin/zeekcfg https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_amd64 \
  && chmod +x /usr/local/zeek/bin/zeekcfg

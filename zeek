@@ -2,7 +2,7 @@
 #Sample start/stop script for Zeek running inside docker
 #based on service_script_template v0.2
 #Many thanks to Logan for his Active-Flow init script, from which some of the following was copied.
-
+#V0.3.2
 
 if [ -n "$1" -a -z "$2" ]; then
 	case "$1" in
@@ -27,7 +27,8 @@ host_zeek_etc="$host_zeek/etc"
 host_zeek_node_cfg="$host_zeek_etc/node.cfg"
 
 CONTAINER_NAME="zeek"
-IMAGE_NAME="activecm/zeek"
+#Note, we force the lts release for stability
+IMAGE_NAME="activecm/zeek:lts"
 
 # If the current user doesn't have docker permissions run with sudo
 SUDO=''
@@ -36,6 +37,11 @@ if [ ! -w "/var/run/docker.sock" ]; then
 fi
 
 sudo --preserve-env mkdir -p "$host_zeek" "$host_zeek_logs" "$host_zeek_spool" "$host_zeek_etc"
+
+#See if we need to download the image first.  Note, the lts release is forced.
+if [ -z "`docker images $IMAGE_NAME | grep -v '^REPOSITORY'`" ]; then
+	$SUDO docker pull "$IMAGE_NAME"
+fi
 
 if [ ! -s "$host_zeek_node_cfg" ]; then
 	echo "We do not appear to have a node.cfg file, so generating one now." >&2

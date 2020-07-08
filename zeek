@@ -6,7 +6,7 @@
 
 if [ -n "$1" -a -z "$2" ]; then
 	case "$1" in
-	start|stop|restart|force-restart|status|reload|enable|disable)
+	start|stop|restart|force-restart|status|reload|enable|disable|pull|update)
 		action="$1"
 		;;
 	*)
@@ -134,6 +134,14 @@ disable)
 	fi
 
 	$SUDO docker update --restart no "$CONTAINER_NAME" >&2
+	;;
+
+pull|update)
+	#Command needed to pull down a new version of Zeek if there's a new docker image
+	$SUDO docker pull "$IMAGE_NAME"
+
+	$0 stop
+	$0 start
 	;;
 
 *)

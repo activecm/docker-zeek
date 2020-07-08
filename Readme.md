@@ -47,7 +47,7 @@ If you don't already have a `node.cfg` file you can use the following commands t
 ```bash
 touch node.cfg
 docker run --rm -it --network host \
-    --mount source=$(pwd)/node.cfg,destination=/node.cfg,type=bind \
+    --mount source=/opt/zeek/etc/node.cfg,destination=/node.cfg,type=bind \
     activecm/zeek \
     zeekcfg -o /node.cfg --type afpacket
 ```
@@ -71,8 +71,8 @@ docker run --cap-add net_raw --cap-add net_admin --network host --detach \
     --name zeek \
     --restart always \
     --mount source=/etc/localtime,destination=/etc/localtime,type=bind,readonly \
-    --mount source=$(pwd)/logs,destination=/usr/local/zeek/logs/,type=bind \
-    --mount source=$(pwd)/node.cfg,destination=/usr/local/zeek/etc/node.cfg,type=bind \
+    --mount source=/usr/local/zeek/logs/,destination=/usr/local/zeek/logs/,type=bind \
+    --mount source=/usr/local/zeek/etc/node.cfg,destination=/usr/local/zeek/etc/node.cfg,type=bind \
     activecm/zeek
 ```
 

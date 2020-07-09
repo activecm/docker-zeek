@@ -2,7 +2,7 @@
 #Sample start/stop script for Zeek running inside docker
 #based on service_script_template v0.2
 #Many thanks to Logan for his Active-Flow init script, from which some of the following was copied.
-#V0.3.2
+#V0.3.3
 
 if [ -n "$1" -a -z "$2" ]; then
 	case "$1" in
@@ -19,7 +19,7 @@ else
 	exit 1
 fi
 
-host_zeek='/usr/local/zeek'
+host_zeek='/opt/zeek'
 
 host_zeek_logs="$host_zeek/logs"
 host_zeek_spool="$host_zeek/spool"

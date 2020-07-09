@@ -2,7 +2,8 @@
 #Sample start/stop script for Zeek running inside docker
 #based on service_script_template v0.2
 #Many thanks to Logan for his Active-Flow init script, from which some of the following was copied.
-#V0.3.4
+#Many thanks to Ethan for his help with the design and implementation
+#V0.3.5
 
 #==== USER CUSTOMIZATION ====
 #The default Zeek top level directory (/opt/zeek) can be overridden with
@@ -43,7 +44,7 @@ host_zeek_node_cfg="$host_zeek_etc/node.cfg"
 CONTAINER_NAME="zeek"
 #Note, we force the 3.0 release for stability, though the user can override it by setting the "zeek_release" environment variable
 host_zeek_release=${zeek_release:-3.0}
-IMAGE_NAME="activecm/zeek:lts"
+IMAGE_NAME="activecm/zeek:$host_zeek_release"
 
 # If the current user doesn't have docker permissions run with sudo
 SUDO=''
@@ -53,7 +54,7 @@ fi
 
 sudo --preserve-env mkdir -p "$host_zeek" "$host_zeek_logs" "$host_zeek_spool" "$host_zeek_etc"
 
-#See if we need to download the image first.  Note, the lts release is forced.
+#See if we need to download the image first.  Note, the 3.0 release is the default via the IMAGE_NAME variable.
 if [ -z "`docker images $IMAGE_NAME | grep -v '^REPOSITORY'`" ]; then
 	$SUDO docker pull "$IMAGE_NAME"
 fi

@@ -40,7 +40,11 @@ You can also specify a custom location for your log files and interface config f
 ./run.sh /opt/zeek/logs /opt/zeek/etc/node.cfg
 ```
 
-## Configuring
+## Customizing
+
+If the Quickstart section above doesn't fit your needs, you can use the following documentation to customize your install.
+
+### Configuring
 
 If you don't already have a `node.cfg` file you can use the following commands to generate one.
 
@@ -52,7 +56,7 @@ docker run --rm -it --network host \
     zeekcfg -o /node.cfg --type afpacket
 ```
 
-## Starting
+### Starting
 
 ```bash
 docker run --cap-add net_raw --cap-add net_admin --network host --detach \
@@ -85,7 +89,7 @@ Here are several locations in the container that you may want to customize by mo
 * `/usr/local/zeek/etc/zeekctl.cfg` - Zeekctl settings. If you don't have a dedicated sniffing interface you'll want to disable the `interfacesetup.enabled` in this file.
 * `/usr/local/zeek/share/zeek/site/local.zeek` - Determines which Zeek scripts are loaded. Any
 
-## Stopping
+### Stopping
 
 ```
 docker stop zeek -t 90
@@ -93,7 +97,7 @@ docker stop zeek -t 90
 
 Note: the `-t 90` is to give Zeek enough time to rotate and archive the current logs. If you leave this off docker only gives 10 seconds and there's a chance that you could lose up to an hour of log data (since the last log rotation). If your logs are particularly large, you may have to increase the value greater than 90 seconds.
 
-## Updating
+### Updating
 
 ```
 docker pull activecm/zeek
@@ -101,14 +105,14 @@ docker pull activecm/zeek
 # Don't forget to recreate your container
 ```
 
-## Installing a Plugin
+### Installing a Plugin
 
 ```
 # Container must be running already
 docker exec zeek zkg install ja3
 ```
 
-## Diagnosing Issues
+### Diagnosing Issues
 
 If Zeek crashes right after starting you can check the log output.
 
@@ -122,6 +126,10 @@ If Zeek is successfully capturing and you want to see if there are any issues:
 # Container must be running already
 docker exec zeek zeekctl doctor
 ```
+
+## Development
+
+Developer documenation can be found in the [docs](docs/) folder.
 
 ## Credits
 

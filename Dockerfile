@@ -74,13 +74,12 @@ COPY --from=builder /usr/local/zeek /usr/local/zeek
 ENV ZEEKPATH .:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
 ENV PATH $PATH:/usr/local/zeek/bin
 
+ARG ZEEK_DEFAULT_PACKAGES="bro-interface-setup bro-doctor ja3"
 # install Zeek package manager
 RUN pip install zkg \
   && zkg autoconfig \
   && zkg refresh \
-  && zkg install --force \ 
-     bro-interface-setup \
-     bro-doctor
+  && zkg install --force $ZEEK_DEFAULT_PACKAGES
 
 ARG ZEEKCFG_VERSION=0.0.5
 

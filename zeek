@@ -2,7 +2,20 @@
 #Sample start/stop script for Zeek running inside docker
 #based on service_script_template v0.2
 #Many thanks to Logan for his Active-Flow init script, from which some of the following was copied.
-#V0.3.3
+#V0.3.4
+
+#==== USER CUSTOMIZATION ====
+#The default Zeek top level directory (/opt/zeek) can be overridden with
+#the "zeek_top" environment variable.  Edit /etc/profile.d/zeek and 
+#add the line (without leading "#"):
+#export zeek_top_dir='/my/data/zeek/'
+#
+#Similarly, the preferred release of zeek ("3.0", which covers any 3.0.x
+#version) can be overridden with the "zeek_release" variable.  Edit the
+#/etc/profile.d/zeek file and add the line (without leading "#"):
+#export zeek_release='lts'
+#
+#You'll need to log out and log back in again for these lines to take effect.
 
 if [ -n "$1" -a -z "$2" ]; then
 	case "$1" in
@@ -19,7 +32,8 @@ else
 	exit 1
 fi
 
-host_zeek='/opt/zeek'
+#The user can set the top level directory that holds all zeek content by setting it in "zeek_top_dir" (default "/opt/zeek")
+host_zeek=${zeek_top_dir:-/opt/zeek}
 
 host_zeek_logs="$host_zeek/logs"
 host_zeek_spool="$host_zeek/spool"
@@ -27,7 +41,8 @@ host_zeek_etc="$host_zeek/etc"
 host_zeek_node_cfg="$host_zeek_etc/node.cfg"
 
 CONTAINER_NAME="zeek"
-#Note, we force the lts release for stability
+#Note, we force the 3.0 release for stability, though the user can override it by setting the "zeek_release" environment variable
+host_zeek_release=${zeek_release:-3.0}
 IMAGE_NAME="activecm/zeek:lts"
 
 # If the current user doesn't have docker permissions run with sudo

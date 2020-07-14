@@ -95,6 +95,7 @@ start)
 	 --restart always \
 	 --mount source=/etc/localtime,destination=/etc/localtime,type=bind,readonly \
 	 --mount "source=$host_zeek_logs,destination=/usr/local/zeek/logs/,type=bind" \
+	 --mount "source=$host_zeek_spool,destination=/usr/local/zeek/spool/,type=bind" \
 	 --mount "source=$host_zeek_node_cfg,destination=/usr/local/zeek/etc/node.cfg,type=bind" \
 	 "$IMAGE_NAME"
 

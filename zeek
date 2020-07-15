@@ -55,8 +55,8 @@ fi
 sudo --preserve-env mkdir -p "$host_zeek" "$host_zeek_logs" "$host_zeek_spool" "$host_zeek_etc"
 
 #See if we need to download the image first.  Note, the 3.0 release is the default via the IMAGE_NAME variable.
-if [ -z "`docker images $IMAGE_NAME | grep -v '^REPOSITORY'`" ]; then
-	$SUDO docker pull "$IMAGE_NAME"
+if [ -z "`$SUDO docker images $IMAGE_NAME | grep -v '^REPOSITORY'`" ]; then
+	$SUDO docker pull --quiet "$IMAGE_NAME"
 fi
 
 if [ ! -s "$host_zeek_node_cfg" ]; then

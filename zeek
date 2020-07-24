@@ -3,11 +3,11 @@
 #based on service_script_template v0.2
 #Many thanks to Logan for his Active-Flow init script, from which some of the following was copied.
 #Many thanks to Ethan for his help with the design and implementation
-#V0.3.5
+#V0.3.6
 
 #==== USER CUSTOMIZATION ====
 #The default Zeek top level directory (/opt/zeek) can be overridden with
-#the "zeek_top" environment variable.  Edit /etc/profile.d/zeek and 
+#the "zeek_top_dir" environment variable.  Edit /etc/profile.d/zeek and 
 #add the line (without leading "#"):
 #export zeek_top_dir='/my/data/zeek/'
 #

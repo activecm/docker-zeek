@@ -12,8 +12,8 @@ This project is meant to run a single-system Zeek cluster inside of a docker con
 
 The docker tags correspond with the version of [Zeek](https://zeek.org/get-zeek/) installed in the image. Zeek currently has two release tracks: feature and lts.
 
-* `latest`, `3.1`, `3.1.4`
-* `lts`, `3`, `3.0`, `3.0.7`
+* `latest`, `3.2`, `3.2.1`
+* `lts`, `3`, `3.0`, `3.0.10`
 
 ## Quickstart
 

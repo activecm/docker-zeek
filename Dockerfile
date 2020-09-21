@@ -1,6 +1,7 @@
 FROM alpine:3.11 as builder
 
-ARG ZEEK_VERSION=3.1.4
+ARG ZEEK_VERSION=3.2.1
+ARG BUILD_PROCS=2
 
 RUN apk add --no-cache zlib openssl libstdc++ libpcap libgcc
 RUN apk add --no-cache -t .build-deps \
@@ -35,15 +36,14 @@ RUN echo "===> Compiling zeek..." \
   --build-type=Release \
   --disable-broker-tests \
   --disable-auxtools \
-  && make -j 2 \
+  && make -j $BUILD_PROCS \
   && make install
 
 RUN echo "===> Compiling af_packet plugin..." \
-  && cd /tmp/zeek/aux/ \
-  && git clone https://github.com/J-Gras/zeek-af_packet-plugin.git \
-  && cd /tmp/zeek/aux/zeek-af_packet-plugin \
+  && git clone https://github.com/J-Gras/zeek-af_packet-plugin.git /tmp/zeek-af_packet-plugin \
+  && cd /tmp/zeek-af_packet-plugin \
   && CC=clang ./configure --with-kernel=/usr --zeek-dist=/tmp/zeek \
-  && make -j 2 \
+  && make -j $BUILD_PROCS \
   && make install \
   && /usr/local/zeek/bin/zeek -NN Zeek::AF_Packet
 
@@ -74,7 +74,7 @@ COPY --from=builder /usr/local/zeek /usr/local/zeek
 ENV ZEEKPATH .:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
 ENV PATH $PATH:/usr/local/zeek/bin
 
-ARG ZKG_VERSION=2.1.2
+ARG ZKG_VERSION=2.2.1
 ARG ZEEK_DEFAULT_PACKAGES="bro-interface-setup bro-doctor ja3"
 # install Zeek package manager
 RUN pip install zkg==$ZKG_VERSION \

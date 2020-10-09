@@ -3,7 +3,7 @@
 #based on service_script_template v0.2
 #Many thanks to Logan for his Active-Flow init script, from which some of the following was copied.
 #Many thanks to Ethan for his help with the design and implementation
-#V0.3.6
+#V0.4.0
 
 #==== USER CUSTOMIZATION ====
 #The default Zeek top level directory (/opt/zeek) can be overridden with
@@ -34,17 +34,10 @@ else
 fi
 
 #The user can set the top level directory that holds all zeek content by setting it in "zeek_top_dir" (default "/opt/zeek")
-host_zeek=${zeek_top_dir:-/opt/zeek}
-
-host_zeek_logs="$host_zeek/logs"
-host_zeek_spool="$host_zeek/spool"
-host_zeek_etc="$host_zeek/etc"
-host_zeek_node_cfg="$host_zeek_etc/node.cfg"
-
-CONTAINER_NAME="zeek"
+HOST_ZEEK=${zeek_top_dir:-/opt/zeek}
 #Note, we force the 3.0 release for stability, though the user can override it by setting the "zeek_release" environment variable
-host_zeek_release=${zeek_release:-3.0}
-IMAGE_NAME="activecm/zeek:$host_zeek_release"
+IMAGE_NAME="activecm/zeek:${zeek_release:-3.0}"
+CONTAINER_NAME="zeek"
 
 # If the current user doesn't have docker permissions run with sudo
 SUDO=''
@@ -52,29 +45,10 @@ if [ ! -w "/var/run/docker.sock" ]; then
 	SUDO="sudo --preserve-env "
 fi
 
-sudo --preserve-env mkdir -p "$host_zeek" "$host_zeek_logs" "$host_zeek_spool" "$host_zeek_etc"
-
-#See if we need to download the image first.  Note, the 3.0 release is the default via the IMAGE_NAME variable.
-if [ -z "`$SUDO docker images $IMAGE_NAME | grep -v '^REPOSITORY'`" ]; then
-	$SUDO docker pull --quiet "$IMAGE_NAME"
-fi
-
-if [ ! -s "$host_zeek_node_cfg" ]; then
-	echo "We do not appear to have a node.cfg file, so generating one now." >&2
-
-	sudo --preserve-env touch "$host_zeek_node_cfg"
-	$SUDO docker run --rm -it --network host \
-	 --mount source="$host_zeek_node_cfg",destination=/node.cfg,type=bind \
-	 "$IMAGE_NAME" \
-	 zeekcfg -o /node.cfg --type afpacket
-fi
-
 if $SUDO docker inspect "$CONTAINER_NAME" &>/dev/null; then
-	CONTAINER_EXIST="true"
 	CONTAINER_RUNNING=`$SUDO docker inspect -f "{{ .State.Running }}" $CONTAINER_NAME 2>/dev/null`
 	RESTART_POLICY=`$SUDO docker inspect -f "{{ .HostConfig.RestartPolicy.Name }}" $CONTAINER_NAME 2>/dev/null`
 else
-	CONTAINER_EXIST="false"
 	CONTAINER_RUNNING="false"
 	RESTART_POLICY="always"
 fi
@@ -89,15 +63,58 @@ start)
 		exit 0
 	fi
 
+	# create bare minimum directories required for running Zeek
+	if [ ! -d "$HOST_ZEEK/logs" ] || [ ! -d "$HOST_ZEEK/spool" ] || [ ! -d "$HOST_ZEEK/etc" ]; then
+		sudo mkdir -p "$HOST_ZEEK/logs" "$HOST_ZEEK/spool" "$HOST_ZEEK/etc"
+	fi
+
+	# create the node.cfg file required for running Zeek
+	if [ ! -s "$HOST_ZEEK/etc/node.cfg" ]; then
+		echo "Could not find $HOST_ZEEK/etc/node.cfg. Generating one now." >&2
+
+		$SUDO docker run --rm -it --network host \
+		--mount source="$HOST_ZEEK/etc/",destination=/zeek/,type=bind \
+		"$IMAGE_NAME" \
+		zeekcfg -o /zeek/node.cfg --type afpacket
+	fi
+
+	# create the volumes required for peristing user-installed zkg packages
+	$SUDO docker volume create zeek-zkg-script >/dev/null
+	$SUDO docker volume create zeek-zkg-plugin >/dev/null
+	$SUDO docker volume create zeek-zkg-state >/dev/null
+
+	docker_cmd=("docker" "run" "--detach")  # start container in the background
+	docker_cmd+=("--name" "$CONTAINER_NAME") # provide a predictable name
+	docker_cmd+=("--restart" "$RESTART_POLICY")
+	docker_cmd+=("--cap-add" "net_raw" "--cap-add" "net_admin") # allow Zeek to listen to raw packets
+	docker_cmd+=("--network" "host") # allow Zeek to monitor host network interfaces
+	# allow packages installed via zkg to persist across restarts
+	docker_cmd+=("--mount" "source=zeek-zkg-script,destination=/usr/local/zeek/share/zeek/site/packages/,type=volume")
+	docker_cmd+=("--mount" "source=zeek-zkg-plugin,destination=/usr/local/zeek/lib/zeek/plugins/packages/,type=volume")
+	docker_cmd+=("--mount" "source=zeek-zkg-state,destination=/root/.zkg,type=volume")
+	# mirror the host timezone settings to the container
+	docker_cmd+=("--mount" "source=/etc/localtime,destination=/etc/localtime,type=bind,readonly")
+	# persist and allow accessing the logs from the host
+	docker_cmd+=("--mount" "source=$HOST_ZEEK/logs,destination=/usr/local/zeek/logs/,type=bind")
+	docker_cmd+=("--mount" "source=$HOST_ZEEK/spool,destination=/usr/local/zeek/spool/,type=bind")
+	# allow users to provide arbitrary custom config files and scripts
+	# mount all zeekctl config files
+	while IFS=  read -r -d $'\0' CONFIG; do
+    	docker_cmd+=("--mount" "source=$CONFIG,destination=/usr/local/zeek/${CONFIG#"$HOST_ZEEK"},type=bind")
+	done < <(find "$HOST_ZEEK/etc/" -type f -print0 2>/dev/null)
+	# mount all zeek scripts
+	while IFS=  read -r -d $'\0' SCRIPT; do
+    	docker_cmd+=("--mount" "source=$SCRIPT,destination=/usr/local/zeek/${SCRIPT#"$HOST_ZEEK"},type=bind")
+	done < <(find "$HOST_ZEEK/share/" -type f -print0 2>/dev/null)
+		# loop reference: https://stackoverflow.com/a/23357277
+		# ${CONFIG#"$HOST_ZEEK"} strips $HOST_ZEEK prefix
+	docker_cmd+=("$IMAGE_NAME")
+
 	echo "Starting the Zeek docker container" >&2
-	$SUDO docker run --cap-add net_raw --cap-add net_admin --network host --detach \
-	 --name "$CONTAINER_NAME" \
-	 --restart always \
-	 --mount source=/etc/localtime,destination=/etc/localtime,type=bind,readonly \
-	 --mount "source=$host_zeek_logs,destination=/usr/local/zeek/logs/,type=bind" \
-	 --mount "source=$host_zeek_spool,destination=/usr/local/zeek/spool/,type=bind" \
-	 --mount "source=$host_zeek_node_cfg,destination=/usr/local/zeek/etc/node.cfg,type=bind" \
-	 "$IMAGE_NAME"
+	$SUDO "${docker_cmd[@]}"
+
+	# Fix current symlink for the host (sleep to give Zeek time to finish starting)
+	(sleep 15s; $SUDO docker exec "$CONTAINER_NAME" ln -sf "$HOST_ZEEK/spool/manager" /usr/local/zeek/logs/current) &
 
 	;;
 stop)
@@ -109,7 +126,7 @@ stop)
 	fi
 
 	echo "Stopping the Zeek docker container" >&2
-	$SUDO docker stop "$CONTAINER_NAME" -t 90 >&2
+	$SUDO docker stop -t 90 "$CONTAINER_NAME" >&2
 
 	echo "Removing the Zeek docker container" >&2
 	$SUDO docker rm --force "$CONTAINER_NAME" >&2
@@ -126,7 +143,10 @@ restart|force-restart)
 status)
 	#Command(s) needed to tell the user the state of the service
 	echo "Zeek docker container status" >&2
-	$SUDO docker exec "$CONTAINER_NAME" zeekctl status
+	$SUDO docker ps --filter name=zeek >&2
+
+	echo "Zeek processes status" >&2
+	$SUDO docker exec "$CONTAINER_NAME" zeekctl status >&2
 	;;
 
 reload)

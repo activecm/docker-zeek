@@ -1,7 +1,7 @@
 
 This project is meant to run a single-system Zeek cluster inside of a docker container. It is based on, but differs from [blacktop/zeek:zeekctl](https://hub.docker.com/r/blacktop/zeek) in that it focuses on running multiple Zeek processes with `zeekctl`. To that end, there are several helpful features included:
 
-- A configuration wizard for generating a `node.cfg` cluster configuration
+- A [configuration wizard](https://github.com/activecm/zeekcfg) for generating a `node.cfg` cluster configuration
 - Will automatically run `zeekctl` on start and print a diagnostic report if it fails
 - Cron will periodically ensure that all Zeek processes are running and restart any that have crashed
 - Zeek's package maanger is included, allowing you to easily install zeek plugins
@@ -12,104 +12,88 @@ This project is meant to run a single-system Zeek cluster inside of a docker con
 
 The docker tags correspond with the version of [Zeek](https://zeek.org/get-zeek/) installed in the image. Zeek currently has two release tracks: feature and lts.
 
-* `latest`, `3.2`, `3.2.1`
-* `lts`, `3`, `3.0`, `3.0.10`
+* `latest`, `3.2`, `3.2.2`
+* `lts`, `3`, `3.0`, `3.0.11`
 
 ## Quickstart
 
 You'll first need Docker. If you don't already have it here is a quick and dirty way to install it on Linux:
 
-```
+```bash
 curl -fsSL https://get.docker.com | sh -
 ```
 
 Otherwise, follow the [install instructions](https://docs.docker.com/get-docker/) for your operating system.
 
-You can then use the `run.sh` script to quickly get Zeek running.
+You can then use the `zeek` script in this repo to quickly get Zeek running.
 
 ```bash
-./run.sh
+./zeek start
 ```
 
-You can also specify a custom location for your log files and interface config file (node.cfg).
-
-```bash
-# Will store logs in /opt/zeek/logs
-./run.sh /opt/zeek/logs
-# Will store logs in /opt/zeek/logs and config in /opt/zeek/etc/node.cfg
-./run.sh /opt/zeek/logs /opt/zeek/etc/node.cfg
-```
+We recommend putting this `zeek` script in your system `PATH`. The rest of this readme will assume this repo's `zeek` script is in the system `PATH`.
 
 ## Customizing
 
 If the Quickstart section above doesn't fit your needs, you can use the following documentation to customize your install.
 
-### Configuring
+### Zeek Files Location
 
-If you don't already have a `node.cfg` file you can use the following commands to generate one.
-
-```bash
-touch node.cfg
-docker run --rm -it --network host \
-    --mount source=$(pwd)/node.cfg,destination=/node.cfg,type=bind \
-    activecm/zeek \
-    zeekcfg -o /node.cfg --type afpacket
-```
-
-### Starting
+The default location our `zeek` script puts its files on your host is `/opt/zeek/`. You can change this directory by setting the `zeek_top_dir` environment variable. We recommend making this change permanent by creating the file `/etc/profile.d/zeek`. For example, to change the directory to `/usr/local/zeek/`:
 
 ```bash
-docker run --cap-add net_raw --cap-add net_admin --network host --detach \
-    --name zeek \
-    --restart always \
-    --mount source=/etc/localtime,destination=/etc/localtime,type=bind,readonly \
-    --mount source=YOURLOGS,destination=/usr/local/zeek/logs/,type=bind \
-    --mount source=YOURCFG,destination=/usr/local/zeek/etc/node.cfg,type=bind \
-    activecm/zeek
+echo "export zeek_top_dir=/usr/local/zeek/" | sudo tee -a /etc/profile.d/zeek
+source /etc/profile.d/zeek
 ```
 
-Replace `YOURLOGS` with the absolute path on your host system you want Zeek logs written to. Replace `YOURCFG` with the absolute path to your `node.cfg` file. For example:
+### Zeek Version
+
+The default version tag is `3.0` which will correspond to the latest release in the 3.0 Zeek release channel. You can customize this with the `zeek_release` environment variable. Set this variable to your desired Docker image tag. For example, to use the latest feature release:
 
 ```bash
-docker run --cap-add net_raw --cap-add net_admin --network host --detach \
-    --name zeek \
-    --restart always \
-    --mount source=/etc/localtime,destination=/etc/localtime,type=bind,readonly \
-    --mount source=$(pwd)/logs,destination=/usr/local/zeek/logs/,type=bind \
-    --mount source=$(pwd)/node.cfg,destination=/usr/local/zeek/etc/node.cfg,type=bind \
-    activecm/zeek
+echo "export zeek_release=latest" | sudo tee -a /etc/profile.d/zeek
+source /etc/profile.d/zeek
 ```
 
-Here are several locations in the container that you may want to customize by mounting your own files or directories:
+### Install a Plugin
 
-* `/usr/local/zeek/logs/` - Directory where Zeek's logs are written.
-* `/usr/local/zeek/spool/` - Directory where Zeek's logs are written before they are archived and moved to `/usr/local/zeek/logs/`. (i.e. the "current" logs)
-* `/usr/local/zeek/etc/node.cfg` - Zeek's cluster configuration including how many workers and which interfaces to capture from. You need to customize this file with your desired sniffing network interface name at the very least.
-* `/usr/local/zeek/etc/networks.cfg` - Internal network range definitions. If you have internal network ranges other than the standard RFC1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) you can add them here.
-* `/usr/local/zeek/etc/zeekctl.cfg` - Zeekctl settings. If you don't have a dedicated sniffing interface you'll want to disable the `interfacesetup.enabled` in this file.
-* `/usr/local/zeek/share/zeek/site/local.zeek` - Determines which Zeek scripts are loaded. Any
-
-### Stopping
+You can install Zeek packages from https://packages.zeek.org/ using the Zeek Package Manager, `zkg`. For example, to install the `hassh` plugin:
 
 ```
-docker stop zeek -t 90
+# Run `zeek start` if you haven't already
+docker exec -it zeek zkg install hassh
 ```
 
-Note: the `-t 90` is to give Zeek enough time to rotate and archive the current logs. If you leave this off docker only gives 10 seconds and there's a chance that you could lose up to an hour of log data (since the last log rotation). If your logs are particularly large, you may have to increase the value greater than 90 seconds.
+Note: Currently only plugins that don't require compiling can be installed.
+
+### Zeek Scripts and local.zeek
+
+You can add custom plugins or scripts by placing your custom files in the appropriate place in Zeek's directory structure on your host system and restarting Zeek. By default these files should be in `/opt/zeek/share/`. For instance, if you have a custom `local.zeek` file you want to use:
+
+```bash
+sudo mkdir -p /opt/zeek/share/zeek/site/
+sudo mv local.zeek /opt/zeek/share/zeek/site/local.zeek
+zeek restart
+```
+
+### Zeekctl Config
+
+Zeekctl has several config files you may want to modify such as `zeekctl.cfg` or `networks.cfg`. The default files used are [here](https://github.com/activecm/docker-zeek/tree/master/etc). If you want to provide your own, place your custom file in the appropriate place on your host and then restart Zeek. By default this would be in `/opt/zeek/etc/`.
+
+The `zeek` script will automatically prompt and create a `node.cfg` file for you. If you would like to re-run this prompt you can delete the existing `node.cfg` file and restart Zeek. For instance, if your files are in the default location:
+
+```bash
+zeek stop
+sudo rm /opt/zeek/etc/node.cfg
+zeek start
+```
 
 ### Updating
 
-```
-docker pull activecm/zeek
+You can use the included `zeek` script to pull the most recent Docker image. This will also restart your Zeek instance.
 
-# Don't forget to recreate your container
-```
-
-### Installing a Plugin
-
-```
-# Container must be running already
-docker exec zeek zkg install ja3
+```bash
+zeek update
 ```
 
 ### Diagnosing Issues

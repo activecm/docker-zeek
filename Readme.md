@@ -62,6 +62,8 @@ You can install Zeek packages from https://packages.zeek.org/ using the Zeek Pac
 ```
 # Run `zeek start` if you haven't already
 docker exec -it zeek zkg install hassh
+# Restart Zeek to activate plugin
+zeek restart
 ```
 
 Note: Currently only plugins that don't require compiling can be installed.

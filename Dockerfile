@@ -1,6 +1,6 @@
 FROM alpine:3.11 as builder
 
-ARG ZEEK_VERSION=3.2.1
+ARG ZEEK_VERSION=3.2.2
 ARG BUILD_PROCS=2
 
 RUN apk add --no-cache zlib openssl libstdc++ libpcap libgcc
@@ -97,5 +97,3 @@ COPY etc/zeekctl.cfg /usr/local/zeek/etc/zeekctl.cfg
 COPY share/zeek/site/local.zeek /usr/local/zeek/share/zeek/site/local.zeek
 
 CMD ["/docker-entrypoint.sh"]
-
-VOLUME /usr/local/zeek/logs

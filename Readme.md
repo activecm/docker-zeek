@@ -29,6 +29,7 @@ You can then use the `zeek` script in this repo to quickly get Zeek running. We 
 
 ```bash
 sudo wget -O /usr/local/bin/zeek https://raw.githubusercontent.com/activecm/docker-zeek/master/zeek
+sudo chmod +x /usr/local/bin/zeek
 ```
 
 Then use the script to start Zeek.

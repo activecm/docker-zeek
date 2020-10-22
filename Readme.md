@@ -25,13 +25,17 @@ curl -fsSL https://get.docker.com | sh -
 
 Otherwise, follow the [install instructions](https://docs.docker.com/get-docker/) for your operating system.
 
-You can then use the `zeek` script in this repo to quickly get Zeek running.
+You can then use the `zeek` script in this repo to quickly get Zeek running. We recommend putting this `zeek` script in your system `PATH`. The rest of this readme will assume this repo's `zeek` script is in the system `PATH`.
 
 ```bash
-./zeek start
+sudo wget -O /usr/local/bin/zeek https://raw.githubusercontent.com/activecm/docker-zeek/master/zeek
 ```
 
-We recommend putting this `zeek` script in your system `PATH`. The rest of this readme will assume this repo's `zeek` script is in the system `PATH`.
+Then use the script to start Zeek.
+
+```bash
+zeek start
+```
 
 ## Customizing
 
@@ -91,6 +95,12 @@ zeek start
 ```
 
 ### Updating
+
+You can obtain the newest version of the `zeek` script from this repo.
+
+```bash
+sudo wget -O /usr/local/bin/zeek https://raw.githubusercontent.com/activecm/docker-zeek/master/zeek
+```
 
 You can use the included `zeek` script to pull the most recent Docker image. This will also restart your Zeek instance.
 

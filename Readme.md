@@ -115,7 +115,7 @@ docker exec zeek zeekctl doctor
 
 ## Development
 
-Developer documenation can be found in the [docs](docs/) folder.
+Developer documentation can be found in the [docs](docs/) folder.
 
 ## Credits
 

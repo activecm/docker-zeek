@@ -49,7 +49,7 @@ init_zeek_cfg() {
 		"/zeek/logs" \
 		"/zeek/spool" \
 		"/zeek/etc" \
-		"/zeek/share/zeek/site"
+		"/zeek/share/zeek/site" 2>/dev/null || true # || true prevents erroring if symlink exists
 	# make logs readable to all users
 	docker exec $container chmod 0755 \
 		"/zeek/logs" \

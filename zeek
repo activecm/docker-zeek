@@ -59,19 +59,19 @@ init_zeek_cfg() {
 
 	# initialize config files that are commonly customized
 	if [ ! -f "$HOST_ZEEK/etc/networks.cfg" ]; then
-		$SUDO docker exec $container cp /usr/local/zeek/etc/networks.cfg /zeek/etc/networks.cfg
+		$SUDO docker exec $container cp -f /usr/local/zeek/etc/networks.cfg /zeek/etc/networks.cfg
 	fi
 	if [ ! -f "$HOST_ZEEK/etc/zeekctl.cfg" ]; then
-		$SUDO docker exec $container cp /usr/local/zeek/etc/zeekctl.cfg /zeek/etc/zeekctl.cfg
+		$SUDO docker exec $container cp -f /usr/local/zeek/etc/zeekctl.cfg /zeek/etc/zeekctl.cfg
 	fi
 	if [ ! -f "$HOST_ZEEK/share/zeek/site/local.zeek" ]; then
-		$SUDO docker exec $container cp /usr/local/zeek/share/zeek/site/local.zeek /zeek/share/zeek/site/local.zeek
+		$SUDO docker exec $container cp -f /usr/local/zeek/share/zeek/site/local.zeek /zeek/share/zeek/site/local.zeek
 	fi
 
 	# create the node.cfg file required for running Zeek
 	if [ ! -s "$HOST_ZEEK/etc/node.cfg" ]; then
 		echo "Could not find $HOST_ZEEK/etc/node.cfg. Generating one now." >&2
-		$SUDO docker exec $container zeekcfg -o "/zeek/etc/node.cfg" --type afpacket --processes 0 --no-pin
+		$SUDO docker exec -it $container zeekcfg -o "/zeek/etc/node.cfg" --type afpacket --processes 0 --no-pin
 	fi
 }
 

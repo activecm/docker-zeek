@@ -49,11 +49,13 @@ init_zeek_cfg() {
 		"/zeek/logs" \
 		"/zeek/spool" \
 		"/zeek/etc" \
-		"/zeek/share/zeek/site" 2>/dev/null || true # || true prevents erroring if symlink exists
+		"/zeek/share/zeek/site" 2>/dev/null \
+		|| true # supress error code if symlink exists
 	# make logs readable to all users
 	$SUDO docker exec $container chmod -f 0755 \
 		"/zeek/logs" \
-		"/zeek/spool" || true # || true prevents erroring if symlink exists
+		"/zeek/spool" 2>/dev/null \
+		|| true # supress error code if symlink exists
 
 	# initialize config files that are commonly customized
 	if [ ! -f "$HOST_ZEEK/etc/networks.cfg" ]; then
@@ -89,20 +91,20 @@ main() {
 		exit 1
 	fi
 
-	local CONTAINER_NAME="zeek"
+	local container="zeek"
 
-	local CONTAINER_RUNNING="false"
-	local RESTART_POLICY="always"
-	if $SUDO docker inspect "$CONTAINER_NAME" &>/dev/null; then
-		CONTAINER_RUNNING=`$SUDO docker inspect -f "{{ .State.Running }}" $CONTAINER_NAME 2>/dev/null`
-		RESTART_POLICY=`$SUDO docker inspect -f "{{ .HostConfig.RestartPolicy.Name }}" $CONTAINER_NAME 2>/dev/null`
+	local running="false"
+	local restart="always"
+	if $SUDO docker inspect "$container" &>/dev/null; then
+		running=`$SUDO docker inspect -f "{{ .State.Running }}" $container 2>/dev/null`
+		restart=`$SUDO docker inspect -f "{{ .HostConfig.RestartPolicy.Name }}" $container 2>/dev/null`
 	fi
 
 	case "$action" in
 	start)
 		#Command(s) needed to start the service right now
 
-		if [ "$CONTAINER_RUNNING" == "true" ]; then
+		if [ "$running" == "true" ]; then
 			echo "Zeek is already running." >&2
 			exit 0
 		fi
@@ -114,20 +116,25 @@ main() {
 		$SUDO docker volume create zeek-zkg-plugin >/dev/null
 		$SUDO docker volume create zeek-zkg-state >/dev/null
 
-		docker_cmd=("docker" "run" "--detach")  # start container in the background
-		docker_cmd+=("--name" "$CONTAINER_NAME") # provide a predictable name
-		docker_cmd+=("--restart" "$RESTART_POLICY")
-		docker_cmd+=("--cap-add" "net_raw" "--cap-add" "net_admin") # allow Zeek to listen to raw packets
-		docker_cmd+=("--network" "host") # allow Zeek to monitor host network interfaces
+		docker_cmd=("docker" "run" "--detach")      # start container in the background
+		docker_cmd+=("--name" "$container")    # provide a predictable name
+		docker_cmd+=("--restart" "$restart")
+		docker_cmd+=("--cap-add" "net_raw")         # allow Zeek to listen to raw packets
+		docker_cmd+=("--cap-add" "net_admin")       # allow Zeek to modify interface settings
+		docker_cmd+=("--network" "host")            # allow Zeek to monitor host network interfaces
+		
 		# allow packages installed via zkg to persist across restarts
 		docker_cmd+=("--mount" "source=zeek-zkg-script,destination=/usr/local/zeek/share/zeek/site/packages/,type=volume")
 		docker_cmd+=("--mount" "source=zeek-zkg-plugin,destination=/usr/local/zeek/lib/zeek/plugins/packages/,type=volume")
 		docker_cmd+=("--mount" "source=zeek-zkg-state,destination=/root/.zkg,type=volume")
+		
 		# mirror the host timezone settings to the container
 		docker_cmd+=("--mount" "source=/etc/localtime,destination=/etc/localtime,type=bind,readonly")
+		
 		# persist and allow accessing the logs from the host
 		docker_cmd+=("--mount" "source=$HOST_ZEEK/logs,destination=/usr/local/zeek/logs/,type=bind")
 		docker_cmd+=("--mount" "source=$HOST_ZEEK/spool,destination=/usr/local/zeek/spool/,type=bind")
+		
 		# allow users to provide arbitrary custom config files and scripts
 		# mount all zeekctl config files
 		while IFS=  read -r -d $'\0' CONFIG; do
@@ -139,26 +146,27 @@ main() {
 		done < <(find "$HOST_ZEEK/share/" -type f -print0 2>/dev/null)
 			# loop reference: https://stackoverflow.com/a/23357277
 			# ${CONFIG#"$HOST_ZEEK"} strips $HOST_ZEEK prefix
+		
 		docker_cmd+=("$IMAGE_NAME")
 
 		echo "Starting the Zeek docker container" >&2
 		$SUDO "${docker_cmd[@]}"
 
 		# Fix current symlink for the host (sleep to give Zeek time to finish starting)
-		(sleep 30s; $SUDO docker exec "$CONTAINER_NAME" ln -sfn "$HOST_ZEEK/spool/manager" /usr/local/zeek/logs/current) &
+		(sleep 30s; $SUDO docker exec "$container" ln -sfn "$HOST_ZEEK/spool/manager" /usr/local/zeek/logs/current) &
 
 		;;
 	stop)
 		#Command(s) needed to stop the service right now
 
-		if [ "$CONTAINER_RUNNING" != "false" ]; then
+		if [ "$running" != "false" ]; then
 			echo "Stopping the Zeek docker container" >&2
-			$SUDO docker stop -t 90 "$CONTAINER_NAME" >&2
+			$SUDO docker stop -t 90 "$container" >&2
 		else
 			echo "Zeek is already stopped." >&2
 		fi
 		
-		$SUDO docker rm --force "$CONTAINER_NAME" >/dev/null 2>&1
+		$SUDO docker rm --force "$container" >/dev/null 2>&1
 		;;
 
 	restart|force-restart)
@@ -175,7 +183,7 @@ main() {
 		$SUDO docker ps --filter name=zeek >&2
 
 		echo "Zeek processes status" >&2
-		$SUDO docker exec "$CONTAINER_NAME" zeekctl status >&2
+		$SUDO docker exec "$container" zeekctl status >&2
 		;;
 
 	reload)
@@ -189,23 +197,23 @@ main() {
 	enable)
 		#Command(s) needed to start the service on future boots
 		echo "Enabling Zeek docker container on future boots" >&2
-		if [ "$CONTAINER_RUNNING" == "false" ]; then
+		if [ "$running" == "false" ]; then
 			echo "Zeek is stopped - please start first to set restart policy." >&2
 			exit 0
 		fi
 
-		$SUDO docker update --restart always "$CONTAINER_NAME" >&2
+		$SUDO docker update --restart always "$container" >&2
 		;;
 
 	disable)
 		#Command(s) needed to stop the service on future boots
 		echo "Blocking Zeek docker container from starting on future boots" >&2
-		if [ "$CONTAINER_RUNNING" == "false" ]; then
+		if [ "$running" == "false" ]; then
 			echo "Zeek is stopped - please start first to set restart policy." >&2
 			exit 0
 		fi
 
-		$SUDO docker update --restart no "$CONTAINER_NAME" >&2
+		$SUDO docker update --restart no "$container" >&2
 		;;
 
 	pull|update)

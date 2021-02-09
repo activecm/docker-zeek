@@ -1,4 +1,4 @@
-FROM alpine:3.11 as builder
+FROM alpine:3.12 as builder
 
 ARG ZEEK_VERSION=3.2.3
 ARG BUILD_PROCS=2
@@ -10,7 +10,7 @@ RUN apk add --no-cache -t .build-deps \
   linux-headers \
   openssl-dev \
   libpcap-dev \
-  python-dev \
+  python3-dev \
   zlib-dev \
   binutils \
   fts-dev \
@@ -54,18 +54,18 @@ RUN echo "===> Size of the Zeek install..." \
   && du -sh /usr/local/zeek
 
 ####################################################################################################
-FROM alpine:3.11
+FROM alpine:3.12
 
-# python & bash are needed for zeekctl scripts
+# python3 & bash are needed for zeekctl scripts
 # ethtool is needed to manage interface features
 # util-linux provides taskset command needed to pin CPUs
-# py-pip and git are needed for zeek's package manager
+# py3-pip and git are needed for zeek's package manager
 RUN apk --no-cache add \
   ca-certificates zlib openssl libstdc++ libpcap libmaxminddb libgcc fts \
-  python bash \
+  python3 bash \
   ethtool \
   util-linux \
-  py-pip git
+  py3-pip git
 
 RUN ln -s $(which ethtool) /sbin/ethtool
 
@@ -74,7 +74,7 @@ COPY --from=builder /usr/local/zeek /usr/local/zeek
 ENV ZEEKPATH .:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
 ENV PATH $PATH:/usr/local/zeek/bin
 
-ARG ZKG_VERSION=2.2.1
+ARG ZKG_VERSION=2.7.1
 ARG ZEEK_DEFAULT_PACKAGES="bro-interface-setup bro-doctor ja3"
 # install Zeek package manager
 RUN pip install zkg==$ZKG_VERSION \

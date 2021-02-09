@@ -21,8 +21,8 @@ jobs:
     - uses: docker/build-push-action@v1
       with:
         repository: activecm/zeek
-        tags: latest,3.2,3.2.2
-        build_args: ZEEK_VERSION=3.2.2
+        tags: latest,3.2,3.2.3
+        build_args: ZEEK_VERSION=3.2.3
         cache_froms: activecm/zeek:latest
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
@@ -37,8 +37,8 @@ jobs:
     - uses: docker/build-push-action@v1
       with:
         repository: activecm/zeek
-        tags: lts,3,3.0,3.0.11
-        build_args: ZEEK_VERSION=3.0.11
+        tags: lts,3,3.0,3.0.12
+        build_args: ZEEK_VERSION=3.0.12
         cache_froms: activecm/zeek:lts
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}

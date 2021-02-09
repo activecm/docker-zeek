@@ -1,6 +1,6 @@
 FROM alpine:3.11 as builder
 
-ARG ZEEK_VERSION=3.2.2
+ARG ZEEK_VERSION=3.2.3
 ARG BUILD_PROCS=2
 
 RUN apk add --no-cache zlib openssl libstdc++ libpcap libgcc

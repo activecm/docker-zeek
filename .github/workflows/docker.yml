@@ -5,6 +5,7 @@ on:
     branches: [ build ]
     paths:
       # Paths that trigger a docker image build
+      - '.github/workflows/*.yml'
       - 'etc/**'
       - 'share/**'
       - 'docker-entrypoint.sh'

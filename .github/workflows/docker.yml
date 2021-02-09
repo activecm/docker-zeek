@@ -51,7 +51,7 @@ jobs:
       run: |
           echo ${{ matrix.version }}
           echo activecm/zeek:${{ matrix.tag }}
-          echo ${{ if ("${{ matrix.tag }}" == "lts"), "activecm/zeek:${{ steps.semver_parser.outputs.major }}" }}
+          echo ${{ if("${{ matrix.tag }}" == "lts", "activecm/zeek:${{ steps.semver_parser.outputs.major }}") }}
           echo activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}
           echo activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}
     # - 

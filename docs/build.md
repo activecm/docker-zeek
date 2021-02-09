@@ -38,6 +38,11 @@ Bundling custom Zeek packages in the image:
 docker build --build-arg ZEEK_DEFAULT_PACKAGES="bro-interface-setup ja3 hassh" -t activecm/zeek .
 ```
 
+Increasing the number of build processes (recommend to set to number of CPU cores):
+```bash
+docker build --build-arg BUILD_PROCS=8 -t activecm/zeek .
+```
+
 # Checking Versions
 
 Verifying the Zeek version installed:

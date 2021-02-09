@@ -5,15 +5,19 @@ This project is meant to run a single-system Zeek cluster inside of a docker con
 - Will automatically run `zeekctl` on start and print a diagnostic report if it fails
 - Cron will periodically ensure that all Zeek processes are running and restart any that have crashed
 - Zeek's package maanger is included, allowing you to easily install zeek plugins
-- Performance improvement with AF_Packet plugin installed and enabled by default in the configuration wizard
 - Performance improvement by using `ethtool` to disable certain interface features by default
+- Performance improvement with AF_Packet plugin installed and enabled by default in the configuration wizard
+- Comes with the following other plugins pre-installed
+  - bro-interface-setup 
+  - bro-doctor 
+  - ja3
 
 ## Supported Docker Tags
 
 The docker tags correspond with the version of [Zeek](https://zeek.org/get-zeek/) installed in the image. Zeek currently has two release tracks: feature and lts.
 
-* `latest`, `3.2`, `3.2.2`
-* `lts`, `3`, `3.0`, `3.0.11`
+* `latest`, `3.2`, `3.2.3`
+* `lts`, `3`, `3.0`, `3.0.12`
 
 ## Quickstart
 

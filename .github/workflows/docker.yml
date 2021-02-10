@@ -83,7 +83,7 @@ jobs:
         build-args: ZEEK_VERSION=${{ matrix.version }}
         push: true
         cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,dest=/tmp/.buildx-cache
+        cache-to: type=local,mode=max,dest=/tmp/.buildx-cache
 
   description:
     needs: build

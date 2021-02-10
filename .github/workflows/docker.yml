@@ -48,15 +48,16 @@ jobs:
       with:
         input_string: "${{ matrix.version }}"
     -
-      name: Prepare tags
+      name: Prepare docker tags
       id: prep
       run: |
         DOCKER_IMAGE=activecm/zeek
-        # e.g. lts, feature
-        TAGS="${DOCKER_IMAGE}:${{ matrix.tag }}"
         if [ "${{ matrix.tag }}" == "lts" ]; then
+          TAGS="${DOCKER_IMAGE}:${{ matrix.tag }}"
           # e.g. 3
-          TAGS="$TAGS,"${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}""
+          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}"
+        else
+          TAGS="${DOCKER_IMAGE}:latest"
         fi
         # e.g. 3.0
         TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}"

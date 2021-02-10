@@ -19,4 +19,4 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
           repository: activecm/zeek
-          readme-filepath: Readme.md
+          readme-filepath: ./Readme.md

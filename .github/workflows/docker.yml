@@ -75,11 +75,7 @@ jobs:
       with:
         platforms: linux/amd64,linux/arm64
         repository: activecm/zeek
-        tags: |
-          activecm/zeek:${{ matrix.tag }}
-          ${{ if ("${{ matrix.tag }}" == "lts"), "activecm/zeek:${{ steps.semver_parser.outputs.major }}" }}
-          activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}
-          activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}
+        tags: ${{ steps.prep.outputs.tags }}
         build-args: ZEEK_VERSION=${{ matrix.version }}
     #     push: true
 

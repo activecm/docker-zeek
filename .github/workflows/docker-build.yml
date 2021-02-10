@@ -5,7 +5,7 @@ on:
     branches: [ master, build ]
     paths:
       # Paths that trigger a docker image build
-      - '.github/workflows/*.yml'
+      - '.github/workflows/docker-build.yml'
       - 'etc/**'
       - 'share/**'
       - 'docker-entrypoint.sh'
@@ -21,9 +21,9 @@ jobs:
         # allows using the same steps for multiple versions
         include:
           - version: "3.2.3"
-            tag: "feature" # extra info to associate with version
+            tag: feature # extra info to associate with version
           - version: "3.0.12"
-            tag: "lts" # extra info to associate with version
+            tag: lts # extra info to associate with version
 
     steps:
     - 
@@ -70,7 +70,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        key: ${{ runner.os }}-buildx-${{ matrix.version }}
         restore-keys: |
           ${{ runner.os }}-buildx-
     - 
@@ -84,16 +84,3 @@ jobs:
         push: true
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache
-
-  description:
-    needs: build
-    name: Update Docker Zeek description
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Update repo description
-        uses: peter-evans/dockerhub-description@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-          repository: activecm/zeek

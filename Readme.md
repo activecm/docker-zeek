@@ -1,5 +1,5 @@
 
-This project is meant to run a single-system Zeek cluster inside of a docker container. It is based on, but differs from [blacktop/zeek:zeekctl](https://hub.docker.com/r/blacktop/zeek) in that it focuses on running multiple Zeek processes with `zeekctl`. To that end, there are several helpful features included:
+[activecm/zeek](https://hub.docker.com/r/activecm/zeek) is meant to run a single-system Zeek cluster inside of a docker container. It is based on, but differs from [blacktop/zeek:zeekctl](https://hub.docker.com/r/blacktop/zeek) in that it focuses on running multiple Zeek processes with `zeekctl`. To that end, there are several helpful features included:
 
 - A [configuration wizard](https://github.com/activecm/zeekcfg) for generating a `node.cfg` cluster configuration
 - Will automatically run `zeekctl` on start and print a diagnostic report if it fails

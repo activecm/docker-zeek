@@ -2,7 +2,8 @@ name: Update Docker Description
 
 on:
   push:
-    branches: [ master, build ]
+    # https://github.com/peter-evans/dockerhub-description/issues/10
+    branches: [disabled] # purposely disabled as this doesn't work with Docker access tokens
     paths:
       - '.github/workflows/docker-description.yml'
       - 'Readme.md'

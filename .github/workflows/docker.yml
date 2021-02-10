@@ -47,14 +47,27 @@ jobs:
       uses: booxmedialtd/ws-action-parse-semver@v1
       with:
         input_string: "${{ matrix.version }}"
+    -
+      name: Prepare tags
+      id: prep
+      run: |
+        DOCKER_IMAGE=activecm/zeek
+        # e.g. lts, feature
+        TAGS="${DOCKER_IMAGE}:${{ matrix.tag }}"
+        if [ "${{ matrix.tag }}" == "lts" ]; then
+          # e.g. 3
+          TAGS="$TAGS,"${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}""
+        fi
+        # e.g. 3.0
+        TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}"
+        # e.g. 3.0.0
+        TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}"
+        echo ::set-output name=tags::${TAGS}
     - 
       name: Build and push
       run: |
           echo ${{ matrix.version }}
-          echo activecm/zeek:${{ matrix.tag }}
-          echo ${{ if("${{ matrix.tag }}" == "lts", "activecm/zeek:${{ steps.semver_parser.outputs.major }}") }}
-          echo activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}
-          echo activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}
+          echo ${{ steps.prep.outputs.tags }}
     # - 
     #   name: Build and push
     #   uses: docker/build-push-action@v2

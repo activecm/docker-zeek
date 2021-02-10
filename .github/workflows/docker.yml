@@ -64,23 +64,23 @@ jobs:
         # e.g. 3.0.0
         TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}"
         echo ::set-output name=tags::${TAGS}
-    - 
-      name: Build and push
-      run: |
-          echo ${{ matrix.version }}
-          echo ${{ steps.prep.outputs.tags }}
     # - 
     #   name: Build and push
-    #   uses: docker/build-push-action@v2
-    #   with:
-    #     platforms: linux/amd64,linux/arm64
-    #     repository: activecm/zeek
-    #     tags: |
-    #       activecm/zeek:${{ matrix.tag }}
-    #       ${{ if ("${{ matrix.tag }}" == "lts"), "activecm/zeek:${{ steps.semver_parser.outputs.major }}" }}
-    #       activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}
-    #       activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}
-    #     build-args: ZEEK_VERSION=${{ matrix.version }}
+    #   run: |
+    #       echo ${{ matrix.version }}
+    #       echo ${{ steps.prep.outputs.tags }}
+    - 
+      name: Build and push
+      uses: docker/build-push-action@v2
+      with:
+        platforms: linux/amd64,linux/arm64
+        repository: activecm/zeek
+        tags: |
+          activecm/zeek:${{ matrix.tag }}
+          ${{ if ("${{ matrix.tag }}" == "lts"), "activecm/zeek:${{ steps.semver_parser.outputs.major }}" }}
+          activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}
+          activecm/zeek:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}
+        build-args: ZEEK_VERSION=${{ matrix.version }}
     #     push: true
 
   # description:

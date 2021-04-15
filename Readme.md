@@ -51,7 +51,7 @@ If the Quickstart section above doesn't fit your needs, you can use the followin
 The default location our `zeek` script puts its files on your host is `/opt/zeek/`. You can change this directory by setting the `zeek_top_dir` environment variable. We recommend making this change permanent by creating the file `/etc/profile.d/zeek`. For example, to change the directory to `/usr/local/zeek/`:
 
 ```bash
-echo "export zeek_top_dir=/usr/local/zeek/" | sudo tee -a /etc/profile.d/zeek
+echo "export zeek_top_dir=/usr/local/zeek/" | sudo tee -a /etc/profile.d/zeek.sh
 source /etc/profile.d/zeek
 ```
 
@@ -60,7 +60,7 @@ source /etc/profile.d/zeek
 The default version tag is `3.0` which will correspond to the latest release in the 3.0 Zeek release channel. You can customize this with the `zeek_release` environment variable. Set this variable to your desired Docker image tag. For example, to use the latest feature release:
 
 ```bash
-echo "export zeek_release=latest" | sudo tee -a /etc/profile.d/zeek
+echo "export zeek_release=latest" | sudo tee -a /etc/profile.d/zeek.sh
 source /etc/profile.d/zeek
 ```
 

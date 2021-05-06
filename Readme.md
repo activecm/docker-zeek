@@ -52,7 +52,7 @@ The default location our `zeek` script puts its files on your host is `/opt/zeek
 
 ```bash
 echo "export zeek_top_dir=/usr/local/zeek/" | sudo tee -a /etc/profile.d/zeek.sh
-source /etc/profile.d/zeek
+source /etc/profile.d/zeek.sh
 ```
 
 ### Zeek Version
@@ -61,7 +61,7 @@ The default version tag is `3.0` which will correspond to the latest release in 
 
 ```bash
 echo "export zeek_release=latest" | sudo tee -a /etc/profile.d/zeek.sh
-source /etc/profile.d/zeek
+source /etc/profile.d/zeek.sh
 ```
 
 ### Install a Plugin

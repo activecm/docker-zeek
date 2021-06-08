@@ -19,11 +19,12 @@ jobs:
     strategy:
       matrix:
         # allows using the same build steps for multiple versions
+        platform: [linux/amd64, linux/arm64, linux/arm/v7]
+        version: [4.0.2]
         include:
-          - version: "3.2.3"
-            tag: latest # extra info to associate with version
-          - version: "3.0.12"
-            tag: lts # extra info to associate with version
+          - version: 4.0.2
+            lts: true
+            latest: true
 
     steps:
     - 
@@ -52,11 +53,12 @@ jobs:
       id: prep
       run: |
         DOCKER_IMAGE=activecm/zeek
-        # e.g. lts or latest
-        TAGS="${DOCKER_IMAGE}:${{ matrix.tag }}"
-        if [ "${{ matrix.tag }}" == "lts" ]; then
-          # e.g. 3
-          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}"
+        TAGS=""
+        if [ -n "${{ matrix.latest }}" ]; then
+          TAGS="$TAGS,${DOCKER_IMAGE}:latest"
+        fi
+        if [ -n "${{ matrix.lts }}" ]; then
+          TAGS="$TAGS,${DOCKER_IMAGE}:lts"
         fi
         # e.g. 3.0
         TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}"
@@ -64,19 +66,21 @@ jobs:
         TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}"
         # make tags available to other actions steps as ${{ steps.prep.outputs.tags }}
         echo ::set-output name=tags::${TAGS}
+        echo ::set-output name=dir::${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}
     -
       name: Cache Docker layers
       uses: actions/cache@v2
       with:
         path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ matrix.version }}
+        key: ${{ runner.os }}-buildx-${{ matrix.platform }}-${{ matrix.version }}
         restore-keys: |
-          ${{ runner.os }}-buildx-
+          ${{ runner.os }}-buildx-${{ matrix.platform }}-
     - 
       name: Build and push
       uses: docker/build-push-action@v2
       with:
-        platforms: linux/amd64,linux/arm64,linux/arm/v7
+        file: ${{ steps.prep.outputs.dir }}/Dockerfile
+        platforms: ${{ matrix.platform }}
         tags: ${{ steps.prep.outputs.tags }}
         build-args: ZEEK_VERSION=${{ matrix.version }}
         push: true

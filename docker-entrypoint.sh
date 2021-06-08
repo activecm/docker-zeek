@@ -35,6 +35,8 @@ trap 'diag' ERR
 
 # ensure Zeek has a valid, updated config, and then start Zeek
 echo "Checking your Zeek configuration..."
+# generate a signel local.zeek from a bunch of partials
+cat /usr/local/zeek/share/zeek/site/autoload/* | grep -v '^#' > /usr/local/zeek/share/zeek/site/local.zeek
 zeekctl check >/dev/null
 zeekctl install
 zeekctl start

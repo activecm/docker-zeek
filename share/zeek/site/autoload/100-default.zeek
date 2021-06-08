@@ -2,6 +2,10 @@
 ##!
 ##! This file will not be overwritten when upgrading or reinstalling!
 
+# Installation-wide salt value that is used in some digest hashes, e.g., for
+# the creation of file IDs. Please change this to a hard to guess value.
+redef digest_salt = "Please change this value.";
+
 # This script logs which scripts were loaded during each run.
 @load misc/loaded-scripts
 
@@ -14,8 +18,9 @@
 # Enable logging of memory, packet and lag statistics.
 @load misc/stats
 
-# Load the scan detection script.
-@load misc/scan
+# Load the scan detection script.  It's disabled by default because
+# it often causes performance issues.
+#@load misc/scan
 
 # Detect traceroute being run on the network. This could possibly cause
 # performance trouble when there are a lot of traceroutes on your network.
@@ -100,9 +105,5 @@
 # this adds the link-layer address for each connection endpoint to the conn.log file.
 # @load policy/protocols/conn/mac-logging
 
-# Auto load installed packages from the Zeek package manager
-@load packages
-
-# This is important for accurate connection info. More info here: 
-# https://www.activecountermeasures.com/fixing-bro-zeeks-long-connection-detection-problem/
-redef tcp_inactivity_timeout = 60 min;
+# Uncomment this to source zkg's package state
+# @load packages

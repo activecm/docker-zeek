@@ -20,7 +20,7 @@ jobs:
       matrix:
         # allows using the same build steps for multiple versions
         platform: [linux/amd64, linux/arm64, linux/arm/v7]
-        version: [4.0.2]
+        version: [4.0.2, 3.0.14]
         include:
           - version: 4.0.2
             lts: true

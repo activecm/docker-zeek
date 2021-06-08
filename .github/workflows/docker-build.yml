@@ -2,7 +2,7 @@ name: Publish Docker Images
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, zeek4 ]
     paths:
       # Paths that trigger a docker image build
       - '.github/workflows/docker-build.yml'
@@ -52,7 +52,7 @@ jobs:
       name: Prepare docker tags  # allows multiple docker tags like 3.0.0, 3.0, and 3
       id: prep
       run: |
-        DOCKER_IMAGE=activecm/zeek
+        DOCKER_IMAGE=ethack/zeek
         TAGS=""
         if [ -n "${{ matrix.latest }}" ]; then
           TAGS="$TAGS,${DOCKER_IMAGE}:latest"

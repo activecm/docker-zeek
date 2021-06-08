@@ -25,6 +25,7 @@ jobs:
           - version: 4.0.2
             lts: true
             latest: true
+    continue-on-error: true
 
     steps:
     - 

@@ -67,7 +67,7 @@ init_zeek_cfg() {
 	if [ ! -f "$HOST_ZEEK/share/zeek/site/autoload/100-default.zeek" ]; then
 		$SUDO docker exec $container cp -f /usr/local/zeek/share/zeek/site/autoload/100-default.zeek /zeek/share/zeek/site/autoload/100-default.zeek
 	fi
-	# Copy all default autoload partials to the host, overwriting existing files (except the default)
+	# Copy all default autoload partials to the host, overwriting existing files
 	$SUDO docker exec $container bash -c 'find /usr/local/zeek/share/zeek/site/autoload/ -type f -iname \*.zeek ! -name 100-default.zeek -exec cp -f "{}" /zeek/share/zeek/site/autoload/ \;'
 
 	# create the node.cfg file required for running Zeek

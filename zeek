@@ -159,7 +159,7 @@ main() {
 		# mount all zeek scripts, except local.zeek which will be auto-generated instead
 		while IFS=  read -r -d $'\0' SCRIPT; do
 			docker_cmd+=("--mount" "source=$SCRIPT,destination=/usr/local/zeek/${SCRIPT#"$HOST_ZEEK"},type=bind")
-		done < <(find "$HOST_ZEEK/share/" -type f ! -name local.zeek -print0 2>/dev/null)
+		done < <(find "$HOST_ZEEK/share/" -type f -iname \*.zeek ! -name local.zeek -print0 2>/dev/null)
 			# loop reference: https://stackoverflow.com/a/23357277
 			# ${CONFIG#"$HOST_ZEEK"} strips $HOST_ZEEK prefix
 		

@@ -4,7 +4,7 @@
 - A [configuration wizard](https://github.com/activecm/zeekcfg) for generating a `node.cfg` cluster configuration
 - Will automatically run `zeekctl` on start and print a diagnostic report if it fails
 - Cron will periodically ensure that all Zeek processes are running and restart any that have crashed
-- Zeek's package maanger is included, allowing you to easily install zeek plugins
+- Zeek's package manager is included, allowing you to easily install zeek plugins
 - Performance improvement by using `ethtool` to disable certain interface features by default
 - Performance improvement with AF_Packet plugin installed and enabled by default in the configuration wizard
 - Comes with the following other plugins pre-installed
@@ -79,11 +79,11 @@ Note: Currently only plugins that don't require compiling can be installed.
 
 ### Zeek Scripts and local.zeek
 
-You can add custom plugins or scripts by placing your custom files in the appropriate place in Zeek's directory structure on your host system and restarting Zeek. By default these files should be in `/opt/zeek/share/`. For instance, if you have a custom `local.zeek` file you want to use:
+This project will auto-generate a `local.zeek` file. This means that you should _not_ attempt to create or modify this file yourself. Instead, anything that would normally go inside the `local.zeek` file can be put inside one or more `.zeek` files in the `share/zeek/site/autoload` directory. The files there are included in alphabetical order to create the `local.zeek` file. The default `local.zeek` provided by the Zeek project is included for your convenience at `autoload/100-default.zeek` and this file can be safely modified.
 
 ```bash
-sudo mkdir -p /opt/zeek/share/zeek/site/
-sudo mv local.zeek /opt/zeek/share/zeek/site/local.zeek
+sudo mkdir -p /opt/zeek/share/zeek/site/autoload
+sudo mv custom.zeek /opt/zeek/share/zeek/site/autoload/210-custom.zeek
 zeek restart
 ```
 

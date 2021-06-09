@@ -94,6 +94,6 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN rm -f /usr/local/zeek/etc/node.cfg
 COPY etc/networks.cfg /usr/local/zeek/etc/networks.cfg
 COPY etc/zeekctl.cfg /usr/local/zeek/etc/zeekctl.cfg
-COPY share/zeek/site/local.zeek /usr/local/zeek/share/zeek/site/local.zeek
+COPY share/zeek/site/ /usr/local/zeek/share/zeek/site/
 
 CMD ["/docker-entrypoint.sh"]

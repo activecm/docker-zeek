@@ -49,13 +49,13 @@ init_zeek_cfg() {
 		"/zeek/logs" \
 		"/zeek/spool" \
 		"/zeek/etc" \
-		"/zeek/share/zeek/site" 2>/dev/null \
-		|| true # supress error code if symlink exists
+		"/zeek/share/zeek/site/autoload" 2>/dev/null \
+		|| true # suppress error code if symlink exists
 	# make logs readable to all users
 	$SUDO docker exec $container chmod -f 0755 \
 		"/zeek/logs" \
 		"/zeek/spool" 2>/dev/null \
-		|| true # supress error code if symlink exists
+		|| true # suppress error code if symlink exists
 
 	# initialize config files that are commonly customized
 	if [ ! -f "$HOST_ZEEK/etc/networks.cfg" ]; then
@@ -64,9 +64,11 @@ init_zeek_cfg() {
 	if [ ! -f "$HOST_ZEEK/etc/zeekctl.cfg" ]; then
 		$SUDO docker exec $container cp -f /usr/local/zeek/etc/zeekctl.cfg /zeek/etc/zeekctl.cfg
 	fi
-	if [ ! -f "$HOST_ZEEK/share/zeek/site/local.zeek" ]; then
-		$SUDO docker exec $container cp -f /usr/local/zeek/share/zeek/site/local.zeek /zeek/share/zeek/site/local.zeek
+	if [ ! -f "$HOST_ZEEK/share/zeek/site/autoload/100-default.zeek" ]; then
+		$SUDO docker exec $container cp -f /usr/local/zeek/share/zeek/site/autoload/100-default.zeek /zeek/share/zeek/site/autoload/100-default.zeek
 	fi
+	# Copy all default autoload partials to the host, overwriting existing files
+	$SUDO docker exec $container bash -c 'find /usr/local/zeek/share/zeek/site/autoload/ -type f -iname \*.zeek ! -name 100-default.zeek -exec cp -f "{}" /zeek/share/zeek/site/autoload/ \;'
 
 	# create the node.cfg file required for running Zeek
 	if [ ! -s "$HOST_ZEEK/etc/node.cfg" ]; then
@@ -117,7 +119,7 @@ main() {
 		$SUDO docker volume create zeek-zkg-state >/dev/null
 
 		docker_cmd=("docker" "run" "--detach")      # start container in the background
-		docker_cmd+=("--name" "$container")    # provide a predictable name
+		docker_cmd+=("--name" "$container")         # provide a predictable name
 		docker_cmd+=("--restart" "$restart")
 		docker_cmd+=("--cap-add" "net_raw")         # allow Zeek to listen to raw packets
 		docker_cmd+=("--cap-add" "net_admin")       # allow Zeek to modify interface settings
@@ -140,10 +142,10 @@ main() {
 		while IFS=  read -r -d $'\0' CONFIG; do
 			docker_cmd+=("--mount" "source=$CONFIG,destination=/usr/local/zeek/${CONFIG#"$HOST_ZEEK"},type=bind")
 		done < <(find "$HOST_ZEEK/etc/" -type f -print0 2>/dev/null)
-		# mount all zeek scripts
+		# mount all zeek scripts, except local.zeek which will be auto-generated instead
 		while IFS=  read -r -d $'\0' SCRIPT; do
 			docker_cmd+=("--mount" "source=$SCRIPT,destination=/usr/local/zeek/${SCRIPT#"$HOST_ZEEK"},type=bind")
-		done < <(find "$HOST_ZEEK/share/" -type f -print0 2>/dev/null)
+		done < <(find "$HOST_ZEEK/share/" -type f ! -name local.zeek -print0 2>/dev/null)
 			# loop reference: https://stackoverflow.com/a/23357277
 			# ${CONFIG#"$HOST_ZEEK"} strips $HOST_ZEEK prefix
 		
@@ -153,7 +155,7 @@ main() {
 		$SUDO "${docker_cmd[@]}"
 
 		# Fix current symlink for the host (sleep to give Zeek time to finish starting)
-		(sleep 30s; $SUDO docker exec "$container" ln -sfn "$HOST_ZEEK/spool/manager" /usr/local/zeek/logs/current) &
+		(sleep 30s; $SUDO docker exec "$container" ln -sfn "../spool/manager" /usr/local/zeek/logs/current) &
 
 		;;
 	stop)

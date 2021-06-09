@@ -3,7 +3,7 @@
 #based on service_script_template v0.2
 #Many thanks to Logan for his Active-Flow init script, from which some of the following was copied.
 #Many thanks to Ethan for his help with the design and implementation
-#V0.4.0
+#V0.5.0
 
 #==== USER CUSTOMIZATION ====
 #The default Zeek top level directory (/opt/zeek) can be overridden with
@@ -51,6 +51,7 @@ init_zeek_cfg() {
 		"/zeek/etc" \
 		"/zeek/share/zeek/site/autoload" 2>/dev/null \
 		|| true # suppress error code if symlink exists
+
 	# make logs readable to all users
 	$SUDO docker exec $container chmod -f 0755 \
 		"/zeek/logs" \
@@ -67,8 +68,21 @@ init_zeek_cfg() {
 	if [ ! -f "$HOST_ZEEK/share/zeek/site/autoload/100-default.zeek" ]; then
 		$SUDO docker exec $container cp -f /usr/local/zeek/share/zeek/site/autoload/100-default.zeek /zeek/share/zeek/site/autoload/100-default.zeek
 	fi
+
 	# Copy all default autoload partials to the host, overwriting existing files
 	$SUDO docker exec $container bash -c 'find /usr/local/zeek/share/zeek/site/autoload/ -type f -iname \*.zeek ! -name 100-default.zeek -exec cp -f "{}" /zeek/share/zeek/site/autoload/ \;'
+
+	# archive the existing local.zeek if it exists
+	if [ -f "$HOST_ZEEK/share/zeek/site/local.zeek" ]; then
+		echo "Renaming existing local.zeek file to local.zeek.bak. Please use the autoload directory or zkg to load Zeek scripts." >&2
+		local local_zeek_bak="$HOST_ZEEK/share/zeek/site/local.zeek.bak"
+		echo "# THIS FILE HAS BEEN ARCHIVED." | $SUDO tee "$local_zeek_bak" > /dev/null
+	        echo "# Please $HOST_ZEEK/share/zeek/site/autoload instead. Any files ending with .zeek" | $SUDO tee -a "$local_zeek_bak" > /dev/null
+		echo "# in the autoload directory will be automatically added to Zeek's running configuration." | $SUDO tee -a "$local_zeek_bak" > /dev/null
+		echo "# after running \"zeek reload\"." | $SUDO tee -a "$local_zeek_bak" > /dev/null
+		cat "$HOST_ZEEK/share/zeek/site/local.zeek" | $SUDO tee -a "$local_zeek_bak" > /dev/null
+		$SUDO rm "$HOST_ZEEK/share/zeek/site/local.zeek"
+	fi
 
 	# create the node.cfg file required for running Zeek
 	if [ ! -s "$HOST_ZEEK/etc/node.cfg" ]; then

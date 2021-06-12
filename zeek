@@ -169,7 +169,7 @@ main() {
 		$SUDO "${docker_cmd[@]}"
 
 		# Fix current symlink for the host (sleep to give Zeek time to finish starting)
-		(sleep 30s; $SUDO docker exec "$container" ln -sfn "../spool/manager" /usr/local/zeek/logs/current) &
+		(sleep 30s; $SUDO docker exec "$container" ln -sfn "$HOST_ZEEK/spool/manager" /usr/local/zeek/logs/current) &
 
 		;;
 	stop)

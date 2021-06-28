@@ -48,15 +48,17 @@ RUN echo "===> Compiling af_packet plugin..." \
   && make install \
   && /usr/local/zeek/bin/zeek -NN Zeek::AF_Packet
 
-RUN echo "===> Installing Community-Id..." \
-  && cd /tmp \
-  && git clone https://github.com/corelight/zeek-community-id.git \
-  && cd /tmp/zeek-community-id \
-  && CC=clang ./configure --zeek-dist=/tmp/zeek \
-  && cd /tmp/zeek-community-id/build \
-  && make -j $BUILD_PROCS \
-  && make install \
-  && /usr/local/zeek/bin/zeek -NN Corelight::CommunityID
+ENV ZEEKPATH .:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
+ENV PATH $PATH:/usr/local/zeek/bin
+
+RUN apk add --no-cache py3-pip \
+ && python3 -m pip install GitPython semantic-version
+
+ARG ZEEK_DEFAULT_PACKAGES="corelight/zeek-community-id corelight/zeek-globload ncsa/bro-interface-setup ncsa/bro-doctor salesforce/ja3 salesforce/hassh"
+# configure Zeek package manager
+RUN zkg autoconfig --force \
+    && zkg refresh \
+    && zkg install --force $ZEEK_DEFAULT_PACKAGES
 
 RUN echo "===> Shrinking image..." \
   && strip -s /usr/local/zeek/bin/zeek
@@ -86,11 +88,9 @@ COPY --from=builder /usr/local/zeek /usr/local/zeek
 ENV ZEEKPATH .:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
 ENV PATH $PATH:/usr/local/zeek/bin
 
-ARG ZEEK_DEFAULT_PACKAGES="bro-interface-setup bro-doctor ja3"
 # configure Zeek package manager
 RUN zkg autoconfig --force \
-    && zkg refresh \
-    && zkg install --force $ZEEK_DEFAULT_PACKAGES
+    && zkg refresh
 
 ARG ZEEKCFG_VERSION=0.0.5
 RUN wget -qO /usr/local/zeek/bin/zeekcfg https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_amd64 \

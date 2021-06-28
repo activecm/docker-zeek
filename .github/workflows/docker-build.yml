@@ -2,7 +2,7 @@ name: Publish Docker Images
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, zeek4 ]
     paths:
       # Paths that trigger a docker image build
       - '.github/workflows/docker-build.yml'
@@ -19,11 +19,13 @@ jobs:
     strategy:
       matrix:
         # allows using the same build steps for multiple versions
+        # platform: [linux/amd64, linux/arm64, linux/arm/v7]
+        version: [4.0.2, 3.0.14]
         include:
-          - version: "3.2.3"
-            tag: latest # extra info to associate with version
-          - version: "3.0.12"
-            tag: lts # extra info to associate with version
+          - version: 4.0.2
+            lts: true
+            latest: true
+    continue-on-error: true
 
     steps:
     - 
@@ -51,12 +53,13 @@ jobs:
       name: Prepare docker tags  # allows multiple docker tags like 3.0.0, 3.0, and 3
       id: prep
       run: |
-        DOCKER_IMAGE=activecm/zeek
-        # e.g. lts or latest
-        TAGS="${DOCKER_IMAGE}:${{ matrix.tag }}"
-        if [ "${{ matrix.tag }}" == "lts" ]; then
-          # e.g. 3
-          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}"
+        DOCKER_IMAGE=ethack/zeek
+        TAGS=""
+        if [ -n "${{ matrix.latest }}" ]; then
+          TAGS="$TAGS,${DOCKER_IMAGE}:latest"
+        fi
+        if [ -n "${{ matrix.lts }}" ]; then
+          TAGS="$TAGS,${DOCKER_IMAGE}:lts"
         fi
         # e.g. 3.0
         TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}"
@@ -64,21 +67,76 @@ jobs:
         TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}"
         # make tags available to other actions steps as ${{ steps.prep.outputs.tags }}
         echo ::set-output name=tags::${TAGS}
+        # store minor version for use elsewhere
+        echo ::set-output name=version_minor::${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}
     -
       name: Cache Docker layers
       uses: actions/cache@v2
       with:
         path: /tmp/.buildx-cache
+        # key: ${{ runner.os }}-buildx-${{ matrix.platform }}-${{ matrix.version }}
+        # restore-keys: |
+        #   ${{ runner.os }}-buildx-${{ matrix.platform }}-${{ steps.prep.outputs.version_minor }}
         key: ${{ runner.os }}-buildx-${{ matrix.version }}
         restore-keys: |
-          ${{ runner.os }}-buildx-
+          ${{ runner.os }}-buildx-${{ steps.prep.outputs.version_minor }}
     - 
-      name: Build and push
+      name: Build
       uses: docker/build-push-action@v2
       with:
-        platforms: linux/amd64,linux/arm64,linux/arm/v7
+        file: ${{ steps.prep.outputs.version_minor }}/Dockerfile
+        # platforms: ${{ matrix.platform }}
+        platforms: linux/amd64, linux/arm64, linux/arm/v7
         tags: ${{ steps.prep.outputs.tags }}
         build-args: ZEEK_VERSION=${{ matrix.version }}
+        # push: false
         push: true
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache
+
+  # push:
+  #   name: Push Zeek release
+  #   runs-on: ubuntu-latest
+  #   needs: build
+
+  #   steps:
+  #   - 
+  #     name: Checkout code
+  #     uses: actions/checkout@v2
+  #   -
+  #     name: Setup Docker Buildx
+  #     uses: docker/setup-buildx-action@v1
+  #   -
+  #     name: Login to DockerHub
+  #     uses: docker/login-action@v1
+  #     with:
+  #       username: ${{ secrets.DOCKER_USERNAME }}
+  #       password: ${{ secrets.DOCKER_TOKEN }}
+  #   - 
+  #     name: Cache Docker layers
+  #     uses: actions/cache@v2
+  #     with:
+  #       path: /tmp/.buildx-cache
+  #       key: ${{ runner.os }}-buildx-${{ matrix.platform }}-${{ matrix.version }}
+  #       restore-keys: |
+  #         ${{ runner.os }}-buildx-${{ matrix.platform }}-${{ steps.prep.outputs.version_minor }}
+  #   - 
+  #     name: Push 3.0
+  #     uses: docker/build-push-action@v2
+  #     with:
+  #       file: 3.0/Dockerfile
+  #       platforms: linux/amd64, linux/arm64, linux/arm/v7
+  #       tags: ethack/zeek:3.0, ethack/zeek:3.0.14
+  #       build-args: ZEEK_VERSION=3.0.14
+  #       push: true
+  #       cache-from: type=local,src=/tmp/.buildx-cache
+  #   - 
+  #     name: Push 4.0
+  #     uses: docker/build-push-action@v2
+  #     with:
+  #       file: 4.0/Dockerfile
+  #       platforms: linux/amd64, linux/arm64, linux/arm/v7
+  #       tags: ethack/zeek:4.0, ethack/zeek:4.0.2, ethack/zeek:latest, ethack/zeek:lts
+  #       build-args: ZEEK_VERSION=4.0.2
+  #       push: true
+  #       cache-from: type=local,src=/tmp/.buildx-cache

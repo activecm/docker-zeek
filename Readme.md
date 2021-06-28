@@ -7,17 +7,20 @@
 - Zeek's package manager is included, allowing you to easily install zeek plugins
 - Performance improvement by using `ethtool` to disable certain interface features by default
 - Performance improvement with AF_Packet plugin installed and enabled by default in the configuration wizard
-- Comes with the following other plugins pre-installed
-  - bro-interface-setup 
-  - bro-doctor 
-  - ja3
+- Comes with the following plugins pre-installed
+  - j-gras/zeek-af_packet-plugin
+  - corelight/zeek-community-id
+  - corelight/zeek-globload
+  - ncsa/bro-interface-setup
+  - ncsa/bro-doctor
+  - salesforce/ja3
+  - salesforce/hassh
 
 ## Supported Docker Tags
 
-The docker tags correspond with the version of [Zeek](https://zeek.org/get-zeek/) installed in the image. Zeek currently has two release tracks: feature and lts.
+The docker tags correspond with the version of [Zeek](https://zeek.org/get-zeek/) installed in the image.
 
-* `latest`, `3.2`, `3.2.3`
-* `lts`, `3`, `3.0`, `3.0.12`
+* `latest`, `lts`, `4.0`, `4.0.2`
 
 ## Quickstart
 

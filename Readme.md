@@ -7,10 +7,14 @@
 - Zeek's package manager is included, allowing you to easily install zeek plugins
 - Performance improvement by using `ethtool` to disable certain interface features by default
 - Performance improvement with AF_Packet plugin installed and enabled by default in the configuration wizard
-- Comes with the following other plugins pre-installed
-  - bro-interface-setup 
-  - bro-doctor 
-  - ja3
+- Comes with the following plugins pre-installed
+  - j-gras/zeek-af_packet-plugin
+  - corelight/zeek-community-id
+  - corelight/zeek-globload
+  - ncsa/bro-interface-setup
+  - ncsa/bro-doctor
+  - salesforce/ja3
+  - salesforce/hassh
 
 ## Supported Docker Tags
 

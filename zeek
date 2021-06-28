@@ -161,10 +161,6 @@ main() {
 
 		echo "Starting the Zeek docker container" >&2
 		$docker "${docker_cmd[@]}"
-
-		# Fix current symlink for the host (sleep to give Zeek time to finish starting)
-		(sleep 30s; $docker exec "$container" ln -sfn "../spool/manager" /usr/local/zeek/logs/current) &
-
 		;;
 	stop)
 		#Command(s) needed to stop the service right now

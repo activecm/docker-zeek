@@ -50,5 +50,11 @@ trap - ERR
 # daemonize cron but log output to stdout
 crond -b -L /dev/fd/1
 
+# make the current a relative symlink to work in more environments
+for _ in {0..60}; do
+	ln -sfn "../spool/manager" /usr/local/zeek/logs/current
+	sleep 1s
+done
+
 # infinite loop to prevent container from exiting and allow this script to process signals
 while :; do sleep 1s; done

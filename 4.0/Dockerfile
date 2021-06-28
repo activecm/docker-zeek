@@ -96,7 +96,9 @@ ARG ZEEKCFG_VERSION=0.0.5
 RUN wget -qO /usr/local/zeek/bin/zeekcfg https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_amd64 \
     && chmod +x /usr/local/zeek/bin/zeekcfg
 # Run zeekctl cron to heal processes every 5 minutes
-RUN echo "*/5       *       *       *       *       /usr/local/zeek/bin/zeekctl cron" >> /etc/crontabs/root
+RUN echo "*/5 * * * * /usr/local/zeek/bin/zeekctl cron" >> /etc/crontabs/root
+# Perpetually fix current to be a relative symlink, even if something rewrites it again later
+RUN echo "* * * * * ln -sfn '../spool/manager' /usr/local/zeek/logs/current" >> /etc/crontabs/root
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 # Users must supply their own node.cfg

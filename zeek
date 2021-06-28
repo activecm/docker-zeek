@@ -131,7 +131,12 @@ main() {
 		# allow packages installed via zkg to persist across restarts
 		docker_cmd+=("--mount" "source=zeek-zkg-script,destination=/usr/local/zeek/share/zeek/site/packages/,type=volume")
 		docker_cmd+=("--mount" "source=zeek-zkg-plugin,destination=/usr/local/zeek/lib/zeek/plugins/packages/,type=volume")
-		docker_cmd+=("--mount" "source=zeek-zkg-state,destination=/usr/local/zeek/var/lib/zkg,type=volume")
+		# prior to Zeek 4.0 the zkg state directory was in a different location
+		if [[ $zeek_release = 3.* ]]; then
+			docker_cmd+=("--mount" "source=zeek-zkg-state,destination=/root/.zkg,type=volume")
+		else
+			docker_cmd+=("--mount" "source=zeek-zkg-state,destination=/usr/local/zeek/var/lib/zkg,type=volume")
+		fi
 		
 		# mirror the host timezone settings to the container
 		docker_cmd+=("--mount" "source=/etc/localtime,destination=/etc/localtime,type=bind,readonly")

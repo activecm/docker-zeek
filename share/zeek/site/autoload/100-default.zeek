@@ -99,3 +99,8 @@
 # Uncomment the following line to enable logging of link-layer addresses. Enabling
 # this adds the link-layer address for each connection endpoint to the conn.log file.
 # @load policy/protocols/conn/mac-logging
+
+# JSON Plugin
+# @load json-streaming-logs
+# redef JSONStreaming::disable_default_logs=T;
+redef LogAscii::use_json=T;

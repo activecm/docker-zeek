@@ -20,10 +20,22 @@ jobs:
       matrix:
         # allows using the same build steps for multiple versions
         include:
-          - version: "3.2.3"
-            tag: latest # extra info to associate with version
+          - version: "3.2.4"
+            af-packet: "2.1.2"
+            zkg: "2.7.1"
+            tag: v3-latest
           - version: "3.0.12"
-            tag: lts # extra info to associate with version
+            af-packet: "2.1.2"
+            zkg: "2.7.1"
+            tag: v3-lts
+          - version: "4.2.0"
+            af-packet: "3.0.2"
+            zkg: "2.12.0"
+            tag: latest
+          - version: "4.0.5"
+            af-packet: "3.0.2"
+            zkg: "2.12.0"
+            tag: lts
 
     steps:
     - 
@@ -54,7 +66,7 @@ jobs:
         DOCKER_IMAGE=activecm/zeek
         # e.g. lts or latest
         TAGS="${DOCKER_IMAGE}:${{ matrix.tag }}"
-        if [ "${{ matrix.tag }}" == "lts" ]; then
+        if [[ "${{ matrix.tag }}" =~ "lts" ]]; then
           # e.g. 3
           TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}"
         fi
@@ -78,7 +90,7 @@ jobs:
       with:
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: ${{ steps.prep.outputs.tags }}
-        build-args: ZEEK_VERSION=${{ matrix.version }}
+        build-args: ZEEK_VERSION=${{ matrix.version }},AF_PACKET_VERSION=${{ matrix.af-packet }},ZKG_VERSION=${{ matrix.zkg }}
         push: true
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache

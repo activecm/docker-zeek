@@ -2,7 +2,7 @@ name: Publish Docker Images
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, zeek-v4 ]
     paths:
       # Paths that trigger a docker image build
       - '.github/workflows/docker-build.yml'
@@ -91,6 +91,6 @@ jobs:
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: ${{ steps.prep.outputs.tags }}
         build-args: ZEEK_VERSION=${{ matrix.version }},AF_PACKET_VERSION=${{ matrix.af-packet }},ZKG_VERSION=${{ matrix.zkg }}
-        push: true
+        push: false
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache

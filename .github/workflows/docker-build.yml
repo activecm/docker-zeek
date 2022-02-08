@@ -90,10 +90,10 @@ jobs:
       with:
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: ${{ steps.prep.outputs.tags }}
-        build-args: 
-          - ZEEK_VERSION=${{ matrix.version }}
-          - AF_PACKET_VERSION=${{ matrix.af-packet }}
-          - ZKG_VERSION=${{ matrix.zkg }}
+        build-args: |
+          ZEEK_VERSION=${{ matrix.version }}
+          AF_PACKET_VERSION=${{ matrix.af-packet }}
+          ZKG_VERSION=${{ matrix.zkg }}
         push: false
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache

@@ -77,10 +77,16 @@ COPY --from=builder /usr/local/zeek /usr/local/zeek
 ENV ZEEKPATH .:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
 ENV PATH $PATH:/usr/local/zeek/bin
 
+# Install Zeek package manager
+# In Zeek v4, zkg is bundled with Zeek. However, the configuration of zkg when bundled with Zeek
+# differs from the configuration when installed via pip. The state directory is
+# /usr/local/zeek/var/lib/zkg when using v4's bundled zkg. When zkg is installed via pip
+# or the --user flag is supplied to the bundled zkg, .root/zkg is used as the state directory.
+# In order to re-use the same configuration across v3 and v4, we manually install zkg from pip.
 ARG ZKG_VERSION=2.12.0
 
 ARG ZEEK_DEFAULT_PACKAGES="bro-interface-setup bro-doctor ja3"
-# install Zeek package manager
+
 RUN pip install zkg==$ZKG_VERSION \
     && zkg autoconfig \
     && zkg refresh \

@@ -1,4 +1,4 @@
-name: Build and Publish Zeek v3 Docker Images
+name: Build and Publish Zeek v3 Docker Images [CI KICK]
 
 on:
   push:

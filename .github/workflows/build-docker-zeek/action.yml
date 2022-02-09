@@ -44,6 +44,7 @@ runs:
     -
       name: Prepare docker tags  # allows multiple docker tags like 3.0.0, 3.0, and 3
       id: prep
+      shell: bash
       run: |
         DOCKER_IMAGE=activecm/zeek
         # e.g. lts or latest

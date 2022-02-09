@@ -1,0 +1,45 @@
+name: Build and Publish Zeek v3 Docker Images
+
+on:
+  push:
+    branches: [ master, zeek-v4 ]
+    paths:
+      # Paths that trigger a docker image build
+      - '.github/workflows/docker-build-v3.yml'
+      - '.github/workflows/docker-build/**'     
+      - 'etc/**'
+      - 'share/**'
+      - 'docker-entrypoint.sh'
+      - 'Dockerfile'
+
+jobs:
+  build:
+    name: Build Zeek release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # allows using the same build steps for multiple versions
+        include:
+          - version: "3.2.4"
+            af-packet: "2.1.2"
+            zkg: "2.7.1"
+            tag: v3-latest
+          - version: "3.0.12"
+            af-packet: "2.1.2"
+            zkg: "2.7.1"
+            tag: v3-lts
+
+    steps:
+    - 
+      name: Checkout code
+      uses: actions/checkout@v2
+    -
+      name: Build and publish Docker images
+      uses: ./.github/workflows/build-docker-zeek
+      with:
+        DOCKER_USERNAME: "${{ secrets.DOCKER_USERNAME }}"
+        DOCKER_TOKEN: "${{ secrets.DOCKER_TOKEN }}"
+        version: "${{ matrix.version }}"
+        af-packet: "${{ matrix.af-packet }}"
+        zkg: "${{ matrix.zkg }}"
+        tag: "${{ matrix.tag }}"

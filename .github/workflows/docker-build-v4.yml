@@ -1,4 +1,4 @@
-name: Build and Publish v4 Docker Images [CI KICK]
+name: Build and Publish v4 Docker Images
 
 on:
   push:

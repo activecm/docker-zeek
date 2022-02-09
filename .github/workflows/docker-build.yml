@@ -18,7 +18,12 @@ jobs:
 
     strategy:
       matrix:
-        # allows using the same build steps for multiple versions
+        arch: ["linux/amd64", "linux/arm64", "linux/arm/v7"]
+        version: 
+          # - "3.0.12"
+          # - "3.2.4"
+          - "4.0.5"
+          - "4.2.0"
         include:
           # - version: "3.2.4"
           #   af-packet: "2.1.2"
@@ -88,7 +93,7 @@ jobs:
       name: Build and push
       uses: docker/build-push-action@v2
       with:
-        platforms: linux/amd64,linux/arm64,linux/arm/v7
+        platforms: ${{ matrix.arch }}
         tags: ${{ steps.prep.outputs.tags }}
         build-args: |
           ZEEK_VERSION=${{ matrix.version }}

@@ -1,28 +1,46 @@
-name: 'build and publish a specific version of docker-zeek'
-description: 'Builds and publishes a specified version of Zeek using Docker. Assumes code has been checked out.'
-inputs:
-  version: 
-    description: 'Version of Zeek to build'
-    required: true
-  af-packet:
-    description: 'Version of the Zeek AF-packet plug-in to install'
-    required: true
-  zkg:
-    description: 'Version of zkg to install from pip'
-    required: true
-  tag:
-    description: 'The tag for the Docker image. If this tag contains "lts", this image will also be tagged with the major version"'
-    required: true
-  DOCKER_USERNAME:
-    description: 'DockerHub username'
-    required: true
-  DOCKER_TOKEN:
-    description: 'DockerHub token'
-    required: true
+name: Publish Docker Images
 
-runs:
-  using: "composite"
+on:
+  push:
+    branches: [ master, zeek-v4 ]
+    paths:
+      # Paths that trigger a docker image build
+      - '.github/workflows/docker-build.yml'
+      - 'etc/**'
+      - 'share/**'
+      - 'docker-entrypoint.sh'
+      - 'Dockerfile'
+
+jobs:
+  build:
+    name: Build Zeek release
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # allows using the same build steps for multiple versions
+        include:
+          - version: "3.2.4"
+            af-packet: "2.1.2"
+            zkg: "2.7.1"
+            tag: v3-latest
+          - version: "3.0.12"
+            af-packet: "2.1.2"
+            zkg: "2.7.1"
+            tag: v3-lts
+          - version: "4.2.0"
+            af-packet: "3.0.2"
+            zkg: "2.12.0"
+            tag: latest
+          - version: "4.0.5"
+            af-packet: "3.0.2"
+            zkg: "2.12.0"
+            tag: lts
+
     steps:
+    - 
+      name: Checkout code
+      uses: actions/checkout@v2
     - 
       name: Set up QEMU # used for arm64 builds
       uses: docker/setup-qemu-action@v1
@@ -33,22 +51,22 @@ runs:
       name: Login to DockerHub
       uses: docker/login-action@v1
       with:
-        username: ${{ inputs.DOCKER_USERNAME }}
-        password: ${{ inputs.DOCKER_TOKEN }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
     - 
       name: Parse semver string # allows multiple docker tags like 3.0.0, 3.0, and 3
       id: semver_parser 
       uses: booxmedialtd/ws-action-parse-semver@v1
       with:
-        input_string: "${{ inputs.version }}"
+        input_string: "${{ matrix.version }}"
     -
       name: Prepare docker tags  # allows multiple docker tags like 3.0.0, 3.0, and 3
       id: prep
       run: |
         DOCKER_IMAGE=activecm/zeek
         # e.g. lts or latest
-        TAGS="${DOCKER_IMAGE}:${{ inputs.tag }}"
-        if [[ "${{ inputs.tag }}" =~ "lts" ]]; then
+        TAGS="${DOCKER_IMAGE}:${{ matrix.tag }}"
+        if [[ "${{ matrix.tag }}" =~ "lts" ]]; then
           # e.g. 3
           TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}"
         fi
@@ -63,7 +81,7 @@ runs:
       uses: actions/cache@v2
       with:
         path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ inputs.version }}
+        key: ${{ runner.os }}-buildx-${{ matrix.version }}
         restore-keys: |
           ${{ runner.os }}-buildx-
     - 
@@ -73,9 +91,9 @@ runs:
         platforms: linux/amd64,linux/arm64,linux/arm/v7
         tags: ${{ steps.prep.outputs.tags }}
         build-args: |
-          ZEEK_VERSION=${{ inputs.version }}
-          AF_PACKET_VERSION=${{ inputs.af-packet }}
-          ZKG_VERSION=${{ inputs.zkg }}
+          ZEEK_VERSION=${{ matrix.version }}
+          AF_PACKET_VERSION=${{ matrix.af-packet }}
+          ZKG_VERSION=${{ matrix.zkg }}
         push: false
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache

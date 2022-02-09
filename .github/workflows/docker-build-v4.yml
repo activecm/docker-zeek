@@ -1,4 +1,4 @@
-name: Build and Publish v4 Docker Images
+name: Build and Publish Zeek v4 Docker Images
 
 on:
   push:

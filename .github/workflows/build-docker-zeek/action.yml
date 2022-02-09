@@ -22,7 +22,7 @@ inputs:
 
 runs:
   using: "composite"
-    steps:
+  steps:
     - 
       name: Set up QEMU # used for arm64 builds
       uses: docker/setup-qemu-action@v1

@@ -111,7 +111,6 @@ jobs:
             ZEEK_VERSION=${{ matrix.version }}
             AF_PACKET_VERSION=${{ matrix.af-packet }}
             ZKG_VERSION=${{ matrix.zkg }}
-            TARGETARCH=${{ matrix.arch }}
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache

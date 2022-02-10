@@ -3,9 +3,6 @@ FROM alpine:3.12 as builder
 ARG ZEEK_VERSION=4.2.0
 ARG AF_PACKET_VERSION=3.0.2
 
-# Should be amd64, arm64, or arm (for v7)
-ARG TARGETARCH="amd64"
-
 ARG BUILD_PROCS=2
 
 RUN apk add --no-cache zlib openssl libstdc++ libpcap libgcc
@@ -97,7 +94,19 @@ RUN pip install zkg==$ZKG_VERSION \
 
 ARG ZEEKCFG_VERSION=0.0.5
 
-RUN wget -qO /usr/local/zeek/bin/zeekcfg https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_${TARGETARCH} \
+RUN case `uname -m` in \
+    x86_64)             #64 bit intel \
+        TARGET_ARCH="amd64" \
+        ;; \
+    aarch64)            #64 bit raspberry pis \
+        TARGET_ARCH="arm64" \ 
+        ;; \
+    arm|armv7l)         #32 bit pis report armv7l \
+        TARGET_ARCH="arm" \
+        ;; \
+    esac; \
+    TARGET_ARCH=${TARGETARCH:-$TARGET_ARCH};    # Override TARGET_ARCH with TARGETARCH from BuildKit if available \
+    wget -qO /usr/local/zeek/bin/zeekcfg https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_${TARGET_ARCH} \
     && chmod +x /usr/local/zeek/bin/zeekcfg
 # Run zeekctl cron to heal processes every 5 minutes
 RUN echo "*/5       *       *       *       *       /usr/local/zeek/bin/zeekctl cron" >> /etc/crontabs/root

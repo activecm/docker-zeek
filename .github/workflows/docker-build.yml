@@ -12,8 +12,8 @@ on:
       - 'Dockerfile'
 
 jobs:
-  build:
-    name: Build Zeek release
+  build-arch:
+    name: Build and push architecture dependent Zeek release
     runs-on: ubuntu-latest
 
     strategy:
@@ -25,80 +25,157 @@ jobs:
           - "4.0.5"
           - "4.2.0"
         include:
-          # - version: "3.2.4"
-          #   af-packet: "2.1.2"
-          #   zkg: "2.7.1"
-          #   tag: v3-latest
+          # Extra data for arch
+          - arch: linux/amd64
+            arch-tag: amd64-linux
+          - arch: linux/arm64
+            arch-tag: arm64-linux
+          - arch: linux/arm/v7
+            arch-tag: armv7-linux
+          # Extra data for versions
           # - version: "3.0.12"
           #   af-packet: "2.1.2"
           #   zkg: "2.7.1"
           #   tag: v3-lts
-          - version: "4.2.0"
-            af-packet: "3.0.2"
-            zkg: "2.12.0"
-            tag: latest
+          # - version: "3.2.4"
+          #   af-packet: "2.1.2"
+          #   zkg: "2.7.1"
+          #   tag: v3-latest
           - version: "4.0.5"
             af-packet: "3.0.2"
             zkg: "2.12.0"
-            tag: lts
+            release-tag: lts
+          - version: "4.2.0"
+            af-packet: "3.0.2"
+            zkg: "2.12.0"
+            release-tag: latest
 
     steps:
-    - 
-      name: Checkout code
-      uses: actions/checkout@v2
-    - 
-      name: Set up QEMU # used for arm64 builds
-      uses: docker/setup-qemu-action@v1
-    -
-      name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v1
-    -
-      name: Login to DockerHub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_TOKEN }}
-    - 
-      name: Parse semver string # allows multiple docker tags like 3.0.0, 3.0, and 3
-      id: semver_parser 
-      uses: booxmedialtd/ws-action-parse-semver@v1
-      with:
-        input_string: "${{ matrix.version }}"
-    -
-      name: Prepare docker tags  # allows multiple docker tags like 3.0.0, 3.0, and 3
-      id: prep
-      run: |
-        DOCKER_IMAGE=activecm/zeek
-        # e.g. lts or latest
-        TAGS="${DOCKER_IMAGE}:${{ matrix.tag }}"
-        if [[ "${{ matrix.tag }}" =~ "lts" ]]; then
-          # e.g. 3
-          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}"
-        fi
-        # e.g. 3.0
-        TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}"
-        # e.g. 3.0.0
-        TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}"
-        # make tags available to other actions steps as ${{ steps.prep.outputs.tags }}
-        echo ::set-output name=tags::${TAGS}
-    -
-      name: Cache Docker layers
-      uses: actions/cache@v2
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ matrix.version }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
-    - 
-      name: Build and push
-      uses: docker/build-push-action@v2
-      with:
-        platforms: ${{ matrix.arch }}
-        tags: ${{ steps.prep.outputs.tags }}
-        build-args: |
-          ZEEK_VERSION=${{ matrix.version }}
-          AF_PACKET_VERSION=${{ matrix.af-packet }}
-          ZKG_VERSION=${{ matrix.zkg }}
-        push: false
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,mode=max,dest=/tmp/.buildx-cache
+      - 
+        name: Checkout code
+        uses: actions/checkout@v2
+      - 
+        name: Set up QEMU # used for arm64 builds
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - 
+        name: Parse semver string # allows multiple docker tags like lts-amd64-linux, 3.0.0-amd64-linux, 3.0-amd64-linux, and 3-amd64-linux
+        id: semver_parser 
+        uses: booxmedialtd/ws-action-parse-semver@v1
+        with:
+          input_string: "${{ matrix.version }}"
+      -
+        name: Prepare Docker tags # allows multiple docker tags like lts-amd64-linux, 3.0.0-amd64-linux, 3.0-amd64-linux, and 3-amd64-linux
+        id: prep
+        run: |
+          DOCKER_IMAGE=loganbhis/zeek
+
+          # e.g. lts-amd64-linux or latest-amd64-linux
+          TAGS="${DOCKER_IMAGE}:${{ matrix.release-tag }}-${{ matrix.arch-tag }}"
+          if [[ "${{ matrix.release-tag }}" =~ "lts" ]]; then
+            # e.g. 3-amd64-linux
+            TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}-${{ matrix.arch-tag }}"
+          fi
+          # e.g. 3.0-amd64-linux
+          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}-${{ matrix.arch-tag }}"
+          # e.g. 3.0.0-amd64-linux
+          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}-${{ matrix.arch-tag }}"
+          # make tags available to other actions steps as ${{ steps.prep.outputs.tags }}
+          echo ::set-output name=tags::${TAGS}
+      -
+        name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ matrix.version }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      - 
+        name: Build Docker image
+        uses: docker/build-push-action@v2
+        with:
+          platforms: ${{ matrix.arch }}
+          tags: ${{ steps.prep.outputs.tags }}
+          build-args: |
+            ZEEK_VERSION=${{ matrix.version }}
+            AF_PACKET_VERSION=${{ matrix.af-packet }}
+            ZKG_VERSION=${{ matrix.zkg }}
+          push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,mode=max,dest=/tmp/.buildx-cache
+
+  build-multiarch:
+    name: Build and push multi-archictecture Zeek release
+    runs-on: ubuntu-latest
+    needs: build-arch
+
+    strategy:
+      matrix:
+        version: 
+          # - "3.0.12"
+          # - "3.2.4"
+          - "4.0.5"
+          - "4.2.0"
+        include:
+          # Extra data for versions
+          # - version: "3.0.12"
+          #   release-tag: v3-lts
+          # - version: "3.2.4"
+          #   release-tag: v3-latest
+          - version: "4.0.5"
+            release-tag: lts
+          - version: "4.2.0"
+            release-tag: latest
+
+    steps:
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - 
+        name: Parse semver string # allows multiple docker tags like 3.0.0, 3.0, and 3
+        id: semver_parser 
+        uses: booxmedialtd/ws-action-parse-semver@v1
+        with:
+          input_string: "${{ matrix.version }}"
+      -
+        name: Prepare Docker tags  # allows multiple docker tags like 3.0.0, 3.0, and 3
+        id: prep
+        run: |
+          DOCKER_IMAGE=loganbhis/zeek
+
+          # e.g. lts or latest
+          TAGS="${DOCKER_IMAGE}:${{ matrix.release-tag }}"
+          if [[ "${{ matrix.release-tag }}" =~ "lts" ]]; then
+            # e.g. 3
+            TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}"
+          fi
+          # e.g. 3.0
+          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}"
+          # e.g. 3.0.0
+          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}"
+          # make tags available to other actions steps as ${{ steps.prep.outputs.tags }}
+          echo ::set-output name=tags::${TAGS}
+      -
+        name: Build multi-architecture manifest
+        run: |
+          TAGS="${{ steps.prep.outputs.tags }}"
+          for image_tag in ${TAGS//,/ }; do 
+            docker manifest create ${image_tag} \
+              ${image_tag}-amd64-linux \
+              ${image_tag}-arm64-linux \
+              ${image_tag}-armv7-linux
+            # docker manifest push ${image_tag}

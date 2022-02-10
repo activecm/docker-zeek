@@ -95,7 +95,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ matrix.version }}
+          key: ${{ runner.os }}-buildx-${{ matrix.version }}-${{ matrix.arch-tag }}
           restore-keys: |
             ${{ runner.os }}-buildx-
       - 

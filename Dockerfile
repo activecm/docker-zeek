@@ -106,6 +106,20 @@ RUN case `uname -m` in \
         ;; \
     esac; \
     TARGET_ARCH=${TARGETARCH:-$TARGET_ARCH};    # Override TARGET_ARCH with TARGETARCH from BuildKit if available \
+    echo https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_${TARGET_ARCH};
+
+RUN case `uname -m` in \
+    x86_64)             #64 bit intel \
+        TARGET_ARCH="amd64" \
+        ;; \
+    aarch64)            #64 bit raspberry pis \
+        TARGET_ARCH="arm64" \ 
+        ;; \
+    arm|armv7l)         #32 bit pis report armv7l \
+        TARGET_ARCH="arm" \
+        ;; \
+    esac; \
+    TARGET_ARCH=${TARGETARCH:-$TARGET_ARCH};    # Override TARGET_ARCH with TARGETARCH from BuildKit if available \
     echo https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_${TARGET_ARCH}; \
     wget -qO /usr/local/zeek/bin/zeekcfg https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_${TARGET_ARCH} \
     && chmod +x /usr/local/zeek/bin/zeekcfg

@@ -178,4 +178,4 @@ jobs:
               ${image_tag}-amd64-linux \
               ${image_tag}-arm64-linux \
               ${image_tag}-armv7-linux
-            # docker manifest push ${image_tag}
+            docker manifest push ${image_tag}

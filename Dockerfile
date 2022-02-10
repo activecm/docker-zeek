@@ -106,6 +106,7 @@ RUN case `uname -m` in \
         ;; \
     esac; \
     TARGET_ARCH=${TARGETARCH:-$TARGET_ARCH};    # Override TARGET_ARCH with TARGETARCH from BuildKit if available \
+    echo https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_${TARGET_ARCH}; \
     wget -qO /usr/local/zeek/bin/zeekcfg https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_${TARGET_ARCH} \
     && chmod +x /usr/local/zeek/bin/zeekcfg
 # Run zeekctl cron to heal processes every 5 minutes

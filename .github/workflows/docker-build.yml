@@ -18,7 +18,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: ["linux/amd64", "linux/arm64", "linux/arm/v7"]
+        platform: ["linux/amd64", "linux/arm64", "linux/arm/v7"]
         version: 
           # - "3.0.12"
           # - "3.2.4"
@@ -26,12 +26,15 @@ jobs:
           - "4.2.0"
         include:
           # Extra data for arch
-          - arch: linux/amd64
-            arch-tag: amd64-linux
-          - arch: linux/arm64
-            arch-tag: arm64-linux
-          - arch: linux/arm/v7
-            arch-tag: armv7-linux
+          - platform: linux/amd64
+            os: linux
+            arch: amd64
+          - platform: linux/arm64
+            os: linux
+            arch: arm64
+          - platform: linux/arm/v7
+            os: linux
+            arch: arm
           # Extra data for versions
           # - version: "3.0.12"
           #   af-packet: "2.1.2"
@@ -79,15 +82,15 @@ jobs:
           DOCKER_IMAGE=loganbhis/zeek
 
           # e.g. lts-amd64-linux or latest-amd64-linux
-          TAGS="${DOCKER_IMAGE}:${{ matrix.release-tag }}-${{ matrix.arch-tag }}"
+          TAGS="${DOCKER_IMAGE}:${{ matrix.release-tag }}-${{ matrix.arch }}-${{ matrix.os }}"
           if [[ "${{ matrix.release-tag }}" =~ "lts" ]]; then
             # e.g. 3-amd64-linux
-            TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}-${{ matrix.arch-tag }}"
+            TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}-${{ matrix.arch }}-${{ matrix.os }}"
           fi
           # e.g. 3.0-amd64-linux
-          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}-${{ matrix.arch-tag }}"
+          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}-${{ matrix.arch }}-${{ matrix.os }}"
           # e.g. 3.0.0-amd64-linux
-          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}-${{ matrix.arch-tag }}"
+          TAGS="$TAGS,${DOCKER_IMAGE}:${{ steps.semver_parser.outputs.major }}.${{ steps.semver_parser.outputs.minor }}.${{ steps.semver_parser.outputs.patch }}-${{ matrix.arch }}-${{ matrix.os }}"
           # make tags available to other actions steps as ${{ steps.prep.outputs.tags }}
           echo ::set-output name=tags::${TAGS}
       -
@@ -95,19 +98,20 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ matrix.version }}-${{ matrix.arch-tag }}
+          key: ${{ runner.os }}-buildx-${{ matrix.version }}-${{ matrix.arch }}-${{ matrix.os }}
           restore-keys: |
             ${{ runner.os }}-buildx-
       - 
         name: Build Docker image
         uses: docker/build-push-action@v2
         with:
-          platforms: ${{ matrix.arch }}
+          platforms: ${{ matrix.platform }}
           tags: ${{ steps.prep.outputs.tags }}
           build-args: |
             ZEEK_VERSION=${{ matrix.version }}
             AF_PACKET_VERSION=${{ matrix.af-packet }}
             ZKG_VERSION=${{ matrix.zkg }}
+            TARGETARCH=${{ matrix.arch }}
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache
@@ -177,6 +181,6 @@ jobs:
             docker manifest create ${image_tag} \
               ${image_tag}-amd64-linux \
               ${image_tag}-arm64-linux \
-              ${image_tag}-armv7-linux
+              ${image_tag}-arm-linux
             docker manifest push ${image_tag}
           done

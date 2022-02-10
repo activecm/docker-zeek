@@ -95,18 +95,18 @@ RUN pip install zkg==$ZKG_VERSION \
 ARG ZEEKCFG_VERSION=0.0.5
 
 RUN case `uname -m` in \
-    x86_64)             #64 bit intel \
+    x86_64) \
         TARGET_ARCH="amd64" \
         ;; \
-    aarch64)            #64 bit raspberry pis \
+    aarch64) \
         TARGET_ARCH="arm64" \ 
         ;; \
-    arm|armv7l)         #32 bit pis report armv7l \
+    arm|armv7l) \
         TARGET_ARCH="arm" \
         ;; \
     esac; \
-    TARGET_ARCH=${TARGETARCH:-$TARGET_ARCH};    # Override TARGET_ARCH with TARGETARCH from BuildKit if available \
-    echo https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_${TARGET_ARCH};
+    TARGET_ARCH=${TARGETARCH:-$TARGET_ARCH}; \
+    echo https://github.com/activecm/zeekcfg/releases/download/v${ZEEKCFG_VERSION}/zeekcfg_${ZEEKCFG_VERSION}_linux_${TARGET_ARCH}
 
 RUN case `uname -m` in \
     x86_64)             #64 bit intel \

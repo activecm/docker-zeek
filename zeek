@@ -133,6 +133,7 @@ main() {
 		$SUDO docker volume create zeek-zkg-state >/dev/null
 
 		docker_cmd=("docker" "run" "--detach")      # start container in the background
+		docker_cmd+=("--platform" "$(uname -m)")    # force the right architecture
 		docker_cmd+=("--name" "$container")         # provide a predictable name
 		docker_cmd+=("--restart" "$restart")
 		docker_cmd+=("--cap-add" "net_raw")         # allow Zeek to listen to raw packets
@@ -234,7 +235,8 @@ main() {
 
 	pull|update)
 		#Command needed to pull down a new version of Zeek if there's a new docker image
-		$SUDO docker pull "$IMAGE_NAME"
+		#The "--platform linux/$(uname -m)" makes sure we pull down the right CPU type (x86_64 for intel or aarch64 for arm)
+		$SUDO docker pull --platform linux/$(uname -m) "$IMAGE_NAME"
 
 		$0 stop
 		$0 start

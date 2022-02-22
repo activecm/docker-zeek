@@ -16,7 +16,7 @@
 
 The docker tags correspond with the version of [Zeek](https://zeek.org/get-zeek/) installed in the image. Zeek currently has two release tracks: feature and lts.
 
-* `v3-latest`, `3.2`, `3.2.4`
+* `v3-latest`, `3.2`, `3.2.3`
 * `v3-lts`, `3`, `3.0`, `3.0.12`
 * `latest`, `4.2`, `4.2.0`
 * `lts`, `4.0`, `4.0.5`

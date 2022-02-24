@@ -31,6 +31,9 @@ x86_64)
 aarch64)
 	docker_arch='linux/arm64'
 	;;
+armv7l)
+	docker_arch='linux/arm/v7'
+	;;
 *)
 	echo "Unknown architecture `uname -m` , exiting." >&2
 	exit 1

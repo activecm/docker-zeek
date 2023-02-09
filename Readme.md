@@ -59,7 +59,7 @@ source /etc/profile.d/zeek.sh
 
 ### Zeek Version
 
-The default version tag is `3.0` which will correspond to the latest release in the 3.0 Zeek release channel. You can customize this with the `zeek_release` environment variable. Set this variable to your desired Docker image tag. For example, to use the latest feature release:
+The default version tag is `4.2.0` which will correspond to the latest release in the 4.2.0 Zeek release channel. You can customize this with the `zeek_release` environment variable. Set this variable to your desired Docker image tag. For example, to use the latest feature release:
 
 ```bash
 echo "export zeek_release=latest" | sudo tee -a /etc/profile.d/zeek.sh

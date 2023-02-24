@@ -3,7 +3,7 @@
 #based on service_script_template v0.2
 #Many thanks to Logan for his Active-Flow init script, from which some of the following was copied.
 #Many thanks to Ethan for his help with the design and implementation, and for the help in troubleshooting readpcap
-#V0.5.1
+#V0.5.2
 
 #==== USER CUSTOMIZATION ====
 #The default Zeek top level directory (/opt/zeek) can be overridden with
@@ -47,7 +47,6 @@ init_zeek_cfg() {
 	# create directories required for running Zeek
 	$SUDO docker exec $container mkdir -p \
 		"/zeek/manual-logs" \
-		"/zeek/manual-spool" \
 		"/zeek/logs" \
 		"/zeek/spool" \
 		"/zeek/etc" \
@@ -57,7 +56,6 @@ init_zeek_cfg() {
 	# make logs readable to all users
 	$SUDO docker exec $container chmod -f 0755 \
 		"/zeek/manual-logs" \
-		"/zeek/manual-spool" \
 		"/zeek/logs" \
 		"/zeek/spool" 2>/dev/null \
 		|| true # suppress error code if chmod fails
@@ -93,11 +91,6 @@ init_zeek_cfg() {
 		echo "Could not find $HOST_ZEEK/etc/node.cfg. Generating one now." >&2
 		$SUDO docker exec -it $container zeekcfg -o "/zeek/etc/node.cfg" --type afpacket --processes 0 --no-pin
 	fi
-
-	#Create a dummy node.cfg for reading pcaps.
-	if [ ! -s "$HOST_ZEEK/etc/node-foreground.cfg" ]; then
-		echo -e "[zeek]\ntype=standalone\nhost=localhost" | $SUDO tee $HOST_ZEEK/etc/node-foreground.cfg >/dev/null
-	fi
 }
 
 main() {
@@ -109,7 +102,7 @@ main() {
 				if [ -n "$2" -a -e "$2" ]; then
 					pcap_filename="$2"
 				else
-					echo "readpcap requires an existing filename (with full path!) as a second parameter.  Please fix and re-run.  Exiting." >&2
+					echo "readpcap requires an existing filename as a second parameter.  Please fix and re-run.  Exiting." >&2
 					exit 1
 				fi
 			fi
@@ -121,7 +114,7 @@ main() {
 		esac
 	else
 		echo 'This script expects a command line option (start, stop, readpcap, restart, status, reload, enable or disable).' >&2
-		echo 'In the case of readpcap, please supply the pcap filename (with its _full_ path!) as the second command line parameter.' >&2
+		echo 'In the case of readpcap, please supply the pcap filename as the second command line parameter.' >&2
 		echo 'Please run again.  Exiting' >&2
 		exit 1
 	fi
@@ -143,11 +136,6 @@ main() {
 	case "$action" in
 	start)
 		#Command(s) needed to start the service right now
-
-		if [ "$running" = "true" ]; then
-			echo "Zeek is already running." >&2
-			exit 0
-		fi
 
 		init_zeek_cfg
 
@@ -176,10 +164,10 @@ main() {
 		docker_cmd+=("--mount" "source=$HOST_ZEEK/spool,destination=/usr/local/zeek/spool/,type=bind")
 
 		# allow users to provide arbitrary custom config files and scripts
-		# mount all zeekctl config files (except node-foreground.cfg, which is used for reading pcap files)
+		# mount all zeekctl config files
 		while IFS=  read -r -d $'\0' CONFIG; do
 			docker_cmd+=("--mount" "source=$CONFIG,destination=/usr/local/zeek/${CONFIG#"$HOST_ZEEK"},type=bind")
-		done < <(find "$HOST_ZEEK/etc/" -type f ! -name node-foreground.cfg -print0 2>/dev/null)					#We load node.cfg, but not node-foreground.cfg
+		done < <(find "$HOST_ZEEK/etc/" -type f -print0 2>/dev/null)
 		# mount all zeek scripts, except local.zeek which will be auto-generated instead
 		while IFS=  read -r -d $'\0' SCRIPT; do
 			docker_cmd+=("--mount" "source=$SCRIPT,destination=/usr/local/zeek/${SCRIPT#"$HOST_ZEEK"},type=bind")
@@ -226,8 +214,6 @@ main() {
 		$SUDO docker volume create zeek-zkg-state >/dev/null
 
 		docker_cmd=("docker" "run" "--rm")          # start container in the foreground
-		docker_cmd+=("--name" "$container")         # provide a predictable name
-		docker_cmd+=("--restart" "no")
 		docker_cmd+=("--workdir" "/usr/local/zeek/logs/")
 
 		# allow packages installed via zkg to persist across restarts
@@ -240,20 +226,20 @@ main() {
 
 		# persist and allow accessing the logs from the host
 		docker_cmd+=("--mount" "source=$HOST_ZEEK/manual-logs,destination=/usr/local/zeek/logs/,type=bind")
-		docker_cmd+=("--mount" "source=$HOST_ZEEK/manual-spool,destination=/usr/local/zeek/spool/,type=bind")
 
 		# mount the incoming pcap file
-		docker_cmd+=("--mount" "source=$pcap_filename,destination=/incoming.pcap,type=bind,readonly")
+		abs_path=$(realpath "$pcap_filename")
+		docker_cmd+=("--mount" "source=$abs_path,destination=/incoming.pcap,type=bind,readonly")
 
 		# allow users to provide arbitrary custom config files and scripts
-		# mount all zeekctl config files (except for node.cfg , which is for live capture off interfaces)
+		# mount all zeekctl config files
 		while IFS=  read -r -d $'\0' CONFIG; do
 			docker_cmd+=("--mount" "source=$CONFIG,destination=/usr/local/zeek/${CONFIG#"$HOST_ZEEK"},type=bind")
-		done < <(find "$HOST_ZEEK/etc/" -type f ! -name node.cfg -print0 2>/dev/null)						#We load node-foreground.cfg, but not node.cfg
+		done < <(find "$HOST_ZEEK/etc/" -type f -print0 2>/dev/null)
 		# mount all zeek scripts, except local.zeek which will be auto-generated instead
 		while IFS=  read -r -d $'\0' SCRIPT; do
 			docker_cmd+=("--mount" "source=$SCRIPT,destination=/usr/local/zeek/${SCRIPT#"$HOST_ZEEK"},type=bind")
-		done < <(find "$HOST_ZEEK/share/" -type f -iname \*.zeek ! -name local.zeek -print0 2>/dev/null)			#FIXME - ideally we don't load add-node-names.zeek .  Unfortunately, placing " ! -name add-node-names.zeek" just before -print0 doesn't do this.
+		done < <(find "$HOST_ZEEK/share/" -type f -iname \*.zeek ! -name local.zeek -print0 2>/dev/null)
 			# loop reference: https://stackoverflow.com/a/23357277
 			# ${CONFIG#"$HOST_ZEEK"} and ${SCRIPT#"$HOST_ZEEK"} strip $HOST_ZEEK prefix
 

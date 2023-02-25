@@ -121,7 +121,8 @@ main() {
 		exit 1
 	fi
 
-	#If we later want to have different containers ("zeek" for persistent processing, and "zeek-readpacp" or "zeek-readpcap-$RANDOM" for processing pcap files, we'll need to have separate volumes for zeek-zkg-* .
+	#Note: the following statement appears to be false.
+	#If we later want to have different containers ("zeek" for persistent processing, and "zeek-readpcap" or "zeek-readpcap-$RANDOM" for processing pcap files, we'll need to have separate volumes for zeek-zkg-* .
 	#if [ "$action" = "readpcap" ]; then
 	#	local container="zeek-readpcap"
 	#else

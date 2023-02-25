@@ -101,6 +101,7 @@ main() {
 			if [ "$action" = "readpcap" ]; then
 				if [ -n "$2" -a -e "$2" ]; then
 					pcap_filename="$2"
+					MANUAL_LOG_DIR=$(realpath "${3:-$HOST_ZEEK/manual-logs}")
 				else
 					echo "readpcap requires an existing filename as a second parameter.  Please fix and re-run.  Exiting." >&2
 					exit 1
@@ -115,6 +116,7 @@ main() {
 	else
 		echo 'This script expects a command line option (start, stop, readpcap, restart, status, reload, enable or disable).' >&2
 		echo 'In the case of readpcap, please supply the pcap filename as the second command line parameter.' >&2
+		echo 'readpcap also accepts an (optional) directory in which to save the logs as the third command line parameter.' >&2
 		echo 'Please run again.  Exiting' >&2
 		exit 1
 	fi
@@ -136,6 +138,11 @@ main() {
 	case "$action" in
 	start)
 		#Command(s) needed to start the service right now
+
+		if [ "$running" = "true" ]; then
+			echo "Zeek is already running." >&2
+			exit 0
+		fi
 
 		init_zeek_cfg
 
@@ -201,11 +208,6 @@ main() {
 	readpcap)
 		#Command(s) needed to process a pcap file
 
-		if [ "$running" = "true" ]; then
-			echo "Zeek is already running, exiting." >&2
-			exit 0
-		fi
-
 		init_zeek_cfg
 
 		# create the volumes required for peristing user-installed zkg packages
@@ -225,7 +227,7 @@ main() {
 		docker_cmd+=("--mount" "source=/etc/localtime,destination=/etc/localtime,type=bind,readonly")
 
 		# persist and allow accessing the logs from the host
-		docker_cmd+=("--mount" "source=$HOST_ZEEK/manual-logs,destination=/usr/local/zeek/logs/,type=bind")
+		docker_cmd+=("--mount" "source=$MANUAL_LOG_DIR,destination=/usr/local/zeek/logs/,type=bind")
 
 		# mount the incoming pcap file
 		abs_path=$(realpath "$pcap_filename")
@@ -246,8 +248,9 @@ main() {
 		docker_cmd+=("--entrypoint" "/bin/bash")										#Running /bin/bash -c "series ; of ; shell ; commands" lets use effectively run a shell script inside the container.
 		docker_cmd+=("$IMAGE_NAME")
 		#If you want to output diags before running, add "  ; /usr/local/zeek/bin/zeekctl diag    just before running zeek in the following.
-		docker_cmd+=("-c" "/bin/cat /usr/local/zeek/share/zeek/site/autoload/* | /bin/grep -v '^#' >/usr/local/zeek/share/zeek/site/local.zeek ; /usr/local/zeek/bin/zeek -C -r /incoming.pcap local 'Site::local_nets += { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 }' 'Notice::sendmail = '")
+		docker_cmd+=("-c" "/bin/cat /usr/local/zeek/share/zeek/site/autoload/* | /bin/grep -v '^#' >/usr/local/zeek/share/zeek/site/local.zeek ; /usr/local/zeek/bin/zeek -C -r /incoming.pcap local 'Site::local_nets += { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 }' 'Notice::sendmail = ' 2>&1 | grep -v 'Node names are not added to logs (not in cluster mode'")
 		echo "Starting the Zeek docker container" >&2
+		echo "Zeek logs will be saved to $MANUAL_LOG_DIR" >&2
 		#Show the command, useful for debugging
 		#echo $SUDO "${docker_cmd[@]}"
 		$SUDO "${docker_cmd[@]}"

@@ -86,8 +86,8 @@ init_zeek_cfg() {
 		$SUDO rm "$HOST_ZEEK/share/zeek/site/local.zeek"
 	fi
 
-	# create the node.cfg file required for running Zeek
-	if [ ! -s "$HOST_ZEEK/etc/node.cfg" ]; then
+	# create the node.cfg file required for running Zeek (but not if we're in readpcap mode, and not if it exists already)
+	if [ "$1" != "readpcap" -a ! -s "$HOST_ZEEK/etc/node.cfg" ]; then
 		echo "Could not find $HOST_ZEEK/etc/node.cfg. Generating one now." >&2
 		$SUDO docker exec -it $container zeekcfg -o "/zeek/etc/node.cfg" --type afpacket --processes 0 --no-pin
 	fi
@@ -102,8 +102,17 @@ main() {
 				if [ -n "$2" -a -e "$2" ]; then
 					pcap_filename="$2"
 					MANUAL_LOG_DIR=$(realpath "${3:-$HOST_ZEEK/manual-logs}")
+					if [ ! -e "$MANUAL_LOG_DIR" ]; then
+						$SUDO mkdir -p "$MANUAL_LOG_DIR"
+					fi
+					if [ ! -d "$MANUAL_LOG_DIR" ]; then
+						echo "Unable to create directory $MANUAL_LOG_DIR , exiting." >&2
+						exit 1
+					fi
 				else
-					echo "readpcap requires an existing filename as a second parameter.  Please fix and re-run.  Exiting." >&2
+					echo "readpcap requires an existing pcap filename as a second parameter and accepts" >&2
+					echo "an (optional) third parameter for the directory in which to place the" >&2
+					echo "output logs (default: /opt/zeek/manual-logs/).  Please fix and re-run.  Exiting." >&2
 					exit 1
 				fi
 			fi
@@ -121,13 +130,7 @@ main() {
 		exit 1
 	fi
 
-	#Note: the following statement appears to be false.
-	#If we later want to have different containers ("zeek" for persistent processing, and "zeek-readpcap" or "zeek-readpcap-$RANDOM" for processing pcap files, we'll need to have separate volumes for zeek-zkg-* .
-	#if [ "$action" = "readpcap" ]; then
-	#	local container="zeek-readpcap"
-	#else
 	local container="zeek"
-	#fi
 
 	local running="false"
 	local restart="always"							#Not used in readpcap, where this is forced to "no"
@@ -209,7 +212,7 @@ main() {
 	readpcap)
 		#Command(s) needed to process a pcap file
 
-		init_zeek_cfg
+		init_zeek_cfg readpcap								#Parameter is used to tell init_zeek_cfg to skip creating node.cfg (as it's not needed for readpcap)
 
 		# create the volumes required for peristing user-installed zkg packages
 		$SUDO docker volume create zeek-zkg-script >/dev/null

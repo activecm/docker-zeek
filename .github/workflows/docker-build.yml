@@ -24,6 +24,7 @@ jobs:
           # - "3.2.4"
           - "4.0.5"
           - "4.2.0"
+          - "6.2.1"
         include:
           # Extra data for arch
           - platform: linux/amd64
@@ -47,11 +48,17 @@ jobs:
           - version: "4.0.5"
             af-packet: "3.0.2"
             zkg: "2.12.0"
-            release-tag: lts
+            release-tag: v4-lts
           - version: "4.2.0"
             af-packet: "3.0.2"
             zkg: "2.12.0"
+            release-tag: v4-latest
+          - version: "6.2.1"
+            zkg: "3.0.1"
             release-tag: latest
+          - version: "6.2.1"
+            zkg: "3.0.1"
+            release-tag: lts
 
     steps:
       - 
@@ -127,6 +134,7 @@ jobs:
           # - "3.2.4"
           - "4.0.5"
           - "4.2.0"
+          - "6.2.1"
         include:
           # Extra data for versions
           # - version: "3.0.12"
@@ -134,9 +142,13 @@ jobs:
           # - version: "3.2.4"
           #   release-tag: v3-latest
           - version: "4.0.5"
-            release-tag: lts
+            release-tag: v4-lts
           - version: "4.2.0"
+            release-tag: v4-latest
+          - version: "6.2.1"
             release-tag: latest
+          - version: "6.2.1"
+            release-tag: lts
 
     steps:
       -

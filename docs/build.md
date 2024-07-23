@@ -5,7 +5,7 @@ The steps to take vary based on what has changed in the new version.
 If the Zeek version changes it needs to be updated in the following places:
 - Default value for the `ZEEK_VERSION` build arg in the `Dockerfile`
 - List of available tags in `Readme.md`
-- Version specified in the Github workflow (`.github/workflows/docker.yml`)
+- Version specified in the Github workflow (`.github/workflows/docker-build.yml`)
 
 If the `Readme.md` changes the contents need to be copied to the Dockerhub project manually. This is due to using Github Actions to push up multiple images (vs. using Dockerhub to pull the code and build a single image). Dockerhub does not automatically update the project with the readme when using the push model. An API is not currently available to do this programmatically.
 

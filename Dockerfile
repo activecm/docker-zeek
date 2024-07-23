@@ -1,7 +1,7 @@
-FROM alpine:3.12 as builder
+FROM alpine AS builder
 
-ARG ZEEK_VERSION=4.2.0
-ARG AF_PACKET_VERSION=3.0.2
+ARG ZEEK_VERSION=6.2.1
+#ARG AF_PACKET_VERSION=3.0.2
 
 ARG BUILD_PROCS=2
 
@@ -14,10 +14,10 @@ RUN apk add --no-cache -t .build-deps \
     libpcap-dev \
     python3-dev \
     zlib-dev \
+    flex-dev \
     binutils \
     fts-dev \
     cmake \
-    clang \
     bison \
     bash \
     swig \
@@ -25,9 +25,12 @@ RUN apk add --no-cache -t .build-deps \
     make \
     flex \
     git \
+    gcc \
     g++ \
     fts \
     krb5-dev
+
+    #Removed clang, nodejs-dev, nodejs (the nodejs ones since we now disable javascript in configure)
 
 RUN echo "===> Cloning zeek..." \
     && cd /tmp \
@@ -35,20 +38,22 @@ RUN echo "===> Cloning zeek..." \
 
 RUN echo "===> Compiling zeek..." \
     && cd /tmp/zeek \
-    && CC=clang ./configure --prefix=/usr/local/zeek \
+    && CC=gcc ./configure --prefix=/usr/local/zeek \
     --build-type=Release \
     --disable-broker-tests \
     --disable-auxtools \
+    --disable-javascript \
     && make -j $BUILD_PROCS \
     && make install
 
-RUN echo "===> Compiling af_packet plugin..." \
-    && git clone https://github.com/J-Gras/zeek-af_packet-plugin.git --branch ${AF_PACKET_VERSION} /tmp/zeek-af_packet-plugin \
-    && cd /tmp/zeek-af_packet-plugin \
-    && CC=clang ./configure --with-kernel=/usr --zeek-dist=/tmp/zeek \
-    && make -j $BUILD_PROCS \
-    && make install \
-    && /usr/local/zeek/bin/zeek -NN Zeek::AF_Packet
+#As of Zeek 5.2.0 af_packet is included with zeek.
+#RUN echo "===> Compiling af_packet plugin..." \
+#    && git clone https://github.com/J-Gras/zeek-af_packet-plugin.git --branch ${AF_PACKET_VERSION} /tmp/zeek-af_packet-plugin \
+#    && cd /tmp/zeek-af_packet-plugin \
+#    && CC=gcc ./configure --with-kernel=/usr --zeek-dist=/tmp/zeek \
+#    && make -j $BUILD_PROCS \
+#    && make install \
+#    && /usr/local/zeek/bin/zeek -NN Zeek::AF_Packet
 
 RUN echo "===> Shrinking image..." \
     && strip -s /usr/local/zeek/bin/zeek
@@ -57,7 +62,7 @@ RUN echo "===> Size of the Zeek install..." \
     && du -sh /usr/local/zeek
 
 ####################################################################################################
-FROM alpine:3.12
+FROM alpine
 
 # python3 & bash are needed for zeekctl scripts
 # ethtool is needed to manage interface features
@@ -74,8 +79,8 @@ RUN ln -s $(which ethtool) /sbin/ethtool
 
 COPY --from=builder /usr/local/zeek /usr/local/zeek
 
-ENV ZEEKPATH .:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
-ENV PATH $PATH:/usr/local/zeek/bin
+ENV ZEEKPATH=.:/usr/local/zeek/share/zeek:/usr/local/zeek/share/zeek/policy:/usr/local/zeek/share/zeek/site
+ENV PATH=$PATH:/usr/local/zeek/bin
 
 # Install Zeek package manager
 # In Zeek v4, zkg is bundled with Zeek. However, the configuration of zkg when bundled with Zeek
@@ -83,11 +88,11 @@ ENV PATH $PATH:/usr/local/zeek/bin
 # /usr/local/zeek/var/lib/zkg when using v4's bundled zkg. When zkg is installed via pip
 # or the --user flag is supplied to the bundled zkg, .root/zkg is used as the state directory.
 # In order to re-use the same configuration across v3 and v4, we manually install zkg from pip.
-ARG ZKG_VERSION=2.12.0
+ARG ZKG_VERSION=3.0.1
 
 ARG ZEEK_DEFAULT_PACKAGES="bro-interface-setup bro-doctor ja3"
 
-RUN pip install zkg==$ZKG_VERSION \
+RUN pip install --break-system-packages zkg==$ZKG_VERSION \
     && zkg autoconfig \
     && zkg refresh \
     && zkg install --force $ZEEK_DEFAULT_PACKAGES

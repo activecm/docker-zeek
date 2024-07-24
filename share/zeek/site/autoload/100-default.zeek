@@ -85,8 +85,10 @@
 # Detect SHA1 sums in Team Cymru's Malware Hash Registry.
 @load frameworks/files/detect-MHR
 
-# Extend email alerting to include hostnames
-@load policy/frameworks/notice/extend-email/hostnames
+# DO NOT Extend email alerting to include hostnames
+# This module causes errors in docker-zeek:
+# timestamp expression error in /usr/local/zeek/share/zeek/policy/frameworks/notice/extend-email/hostnames.zeek, line 39: no such index (Notice::tmp_notice_storage[Notice::uid])
+# @load policy/frameworks/notice/extend-email/hostnames
 
 # Uncomment the following line to enable detection of the heartbleed attack. Enabling
 # this might impact performance a bit.

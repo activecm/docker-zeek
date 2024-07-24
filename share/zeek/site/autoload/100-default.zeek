@@ -14,8 +14,8 @@
 # Enable logging of memory, packet and lag statistics.
 @load misc/stats
 
-# Load the scan detection script.
-@load misc/scan
+# DO NOT Load the scan detection script, no longer included.
+# @load misc/scan
 
 # Detect traceroute being run on the network. This could possibly cause
 # performance trouble when there are a lot of traceroutes on your network.

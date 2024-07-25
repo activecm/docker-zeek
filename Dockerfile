@@ -90,7 +90,7 @@ ENV PATH=$PATH:/usr/local/zeek/bin
 # In order to re-use the same configuration across v3 and v4, we manually install zkg from pip.
 ARG ZKG_VERSION=3.0.1
 
-ARG ZEEK_DEFAULT_PACKAGES="bro-interface-setup bro-doctor ja3"
+ARG ZEEK_DEFAULT_PACKAGES="bro-interface-setup bro-doctor ja3 zeek-open-connections"
 
 RUN pip install --break-system-packages zkg==$ZKG_VERSION \
     && zkg autoconfig \

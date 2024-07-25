@@ -26,7 +26,7 @@ fi
 
 #The user can set the top level directory that holds all zeek content by setting it in "zeek_top_dir" (default "/opt/zeek")
 HOST_ZEEK=${zeek_top_dir:-/opt/zeek}
-IMAGE_NAME="activecm/zeek:${zeek_release:-4.2.0}"
+IMAGE_NAME="activecm/zeek:${zeek_release:-latest}"
 
 # initilizes Zeek directories and config files on the host
 init_zeek_cfg() {

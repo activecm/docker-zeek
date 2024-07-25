@@ -36,7 +36,8 @@ trap 'diag' ERR
 # ensure Zeek has a valid, updated config, and then start Zeek
 echo "Checking your Zeek configuration..."
 # generate a single local.zeek from a bunch of partials
-cat /usr/local/zeek/share/zeek/site/autoload/* | grep -v '^#' > /usr/local/zeek/share/zeek/site/local.zeek
+#We specifically strip out the line for misc/scan as it's no longer part of zeek and it's darn near impossible to find.
+cat /usr/local/zeek/share/zeek/site/autoload/* | grep -v '^#' | grep -v 'misc/scan' >/usr/local/zeek/share/zeek/site/local.zeek
 zeekctl check >/dev/null
 zeekctl install
 zeekctl start

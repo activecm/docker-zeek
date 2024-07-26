@@ -22,8 +22,8 @@ jobs:
         version: 
           # - "3.0.12"
           # - "3.2.4"
-          - "4.0.5"
-          - "4.2.0"
+          # - "4.0.5"
+          # - "4.2.0"
           - "6.2.1"
         include:
           # Extra data for arch
@@ -45,25 +45,25 @@ jobs:
           #   af-packet: "2.1.2"
           #   zkg: "2.7.1"
           #   release-tag: v3-latest
-          - version: "4.0.5"
-            af-packet: "3.0.2"
-            zkg: "2.12.0"
-            release-tag: v4-lts
-          - version: "4.2.0"
-            af-packet: "3.0.2"
-            zkg: "2.12.0"
-            release-tag: v4-latest
+          # - version: "4.0.5"
+          #   af-packet: "3.0.2"
+          #   zkg: "2.12.0"
+          #   release-tag: v4-lts
+          # - version: "4.2.0"
+          #   af-packet: "3.0.2"
+          #   zkg: "2.12.0"
+          #   release-tag: v4-latest
           - version: "6.2.1"
             zkg: "3.0.1"
             release-tag: latest
-          - version: "6.2.1"
-            zkg: "3.0.1"
-            release-tag: lts
+          # - version: "6.2.1"
+          #   zkg: "3.0.1"
+          #   release-tag: lts
 
     steps:
       - 
         name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - 
         name: Set up QEMU # used for arm64 builds
         uses: docker/setup-qemu-action@v1
@@ -132,8 +132,8 @@ jobs:
         version: 
           # - "3.0.12"
           # - "3.2.4"
-          - "4.0.5"
-          - "4.2.0"
+          # - "4.0.5"
+          # - "4.2.0"
           - "6.2.1"
         include:
           # Extra data for versions
@@ -141,14 +141,14 @@ jobs:
           #   release-tag: v3-lts
           # - version: "3.2.4"
           #   release-tag: v3-latest
-          - version: "4.0.5"
-            release-tag: v4-lts
-          - version: "4.2.0"
-            release-tag: v4-latest
+          # - version: "4.0.5"
+          #   release-tag: v4-lts
+          # - version: "4.2.0"
+          #   release-tag: v4-latest
           - version: "6.2.1"
             release-tag: latest
-          - version: "6.2.1"
-            release-tag: lts
+          # - version: "6.2.1"
+          #   release-tag: lts
 
     steps:
       -

@@ -26,7 +26,7 @@ fi
 
 #The user can set the top level directory that holds all zeek content by setting it in "zeek_top_dir" (default "/opt/zeek")
 HOST_ZEEK=${zeek_top_dir:-/opt/zeek}
-IMAGE_NAME="activecm/zeek:${zeek_release:-4.2.0}"
+IMAGE_NAME="activecm/zeek:${zeek_release:-latest}"
 
 # initilizes Zeek directories and config files on the host
 init_zeek_cfg() {
@@ -251,7 +251,7 @@ main() {
 		docker_cmd+=("--entrypoint" "/bin/bash")										#Running /bin/bash -c "series ; of ; shell ; commands" lets use effectively run a shell script inside the container.
 		docker_cmd+=("$IMAGE_NAME")
 		#If you want to output diags before running, add "  ; /usr/local/zeek/bin/zeekctl diag    just before running zeek in the following.
-		docker_cmd+=("-c" "/bin/cat /usr/local/zeek/share/zeek/site/autoload/* | /bin/grep -v '^#' >/usr/local/zeek/share/zeek/site/local.zeek ; /usr/local/zeek/bin/zeek -C -r /incoming.pcap local 'Site::local_nets += { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 }' 'Notice::sendmail = ' 2>&1 | grep -v 'Node names are not added to logs (not in cluster mode'")
+		docker_cmd+=("-c" "/bin/cat /usr/local/zeek/share/zeek/site/autoload/* | /bin/grep -v '^#' | /bin/grep -v 'misc/scan' >/usr/local/zeek/share/zeek/site/local.zeek ; /bin/mv -f /usr/local/zeek/share/zeek/builtin-plugins/Zeek_AF_Packet/{__load__.zeek,init.zeek} /usr/local/zeek/share/zeek/builtin-plugins/ || /bin/true ; /usr/local/zeek/bin/zeek -C -r /incoming.pcap local 'Site::local_nets += { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 }' 'Notice::sendmail = ' 2>&1 | grep -v 'Node names are not added to logs (not in cluster mode'")
 		echo "Starting the Zeek docker container" >&2
 		echo "Zeek logs will be saved to $MANUAL_LOG_DIR" >&2
 		#Show the command, useful for debugging

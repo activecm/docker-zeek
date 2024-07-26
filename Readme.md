@@ -18,8 +18,10 @@ The docker tags correspond with the version of [Zeek](https://zeek.org/get-zeek/
 
 * `v3-latest`, `3.2`, `3.2.3`
 * `v3-lts`, `3`, `3.0`, `3.0.12`
-* `latest`, `4.2`, `4.2.0`
-* `lts`, `4.0`, `4.0.5`
+* `v4-latest`, `4.2`, `4.2.0`
+* `v4-lts`, `4.0`, `4.0.5`
+* `latest`, `6.2`, `6.2.1`
+* `lts`, `6.2`, `6.2.1`
 
 ## Quickstart
 
@@ -59,7 +61,7 @@ source /etc/profile.d/zeek.sh
 
 ### Zeek Version
 
-The default version tag is `4.2.0` which will correspond to the latest release in the 4.2.0 Zeek release channel. You can customize this with the `zeek_release` environment variable. Set this variable to your desired Docker image tag. For example, to use the latest feature release:
+The default version tag is `6.2.1` which will correspond to the latest release in the 6.2.1 Zeek release channel. You can customize this with the `zeek_release` environment variable. Set this variable to your desired Docker image tag. For example, to use the latest feature release:
 
 ```bash
 echo "export zeek_release=latest" | sudo tee -a /etc/profile.d/zeek.sh

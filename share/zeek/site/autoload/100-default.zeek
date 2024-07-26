@@ -14,8 +14,8 @@
 # Enable logging of memory, packet and lag statistics.
 @load misc/stats
 
-# Load the scan detection script.
-@load misc/scan
+# DO NOT Load the scan detection script, no longer included.
+# @load misc/scan
 
 # Detect traceroute being run on the network. This could possibly cause
 # performance trouble when there are a lot of traceroutes on your network.
@@ -85,8 +85,10 @@
 # Detect SHA1 sums in Team Cymru's Malware Hash Registry.
 @load frameworks/files/detect-MHR
 
-# Extend email alerting to include hostnames
-@load policy/frameworks/notice/extend-email/hostnames
+# DO NOT Extend email alerting to include hostnames
+# This module causes errors in docker-zeek:
+# timestamp expression error in /usr/local/zeek/share/zeek/policy/frameworks/notice/extend-email/hostnames.zeek, line 39: no such index (Notice::tmp_notice_storage[Notice::uid])
+# @load policy/frameworks/notice/extend-email/hostnames
 
 # Uncomment the following line to enable detection of the heartbleed attack. Enabling
 # this might impact performance a bit.

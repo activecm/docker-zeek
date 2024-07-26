@@ -24,6 +24,22 @@ if [ ! -w "/var/run/docker.sock" ]; then
 	SUDO="sudo --preserve-env "	
 fi
 
+case "`uname -m`" in
+x86_64)
+	docker_arch='linux/amd64'
+	;;
+aarch64)
+	docker_arch='linux/arm64'
+	;;
+armv7l)
+	docker_arch='linux/arm/v7'
+	;;
+*)
+	echo "Unknown architecture `uname -m` , exiting." >&2
+	exit 1
+	;;
+esac
+
 #The user can set the top level directory that holds all zeek content by setting it in "zeek_top_dir" (default "/opt/zeek")
 HOST_ZEEK=${zeek_top_dir:-/opt/zeek}
 IMAGE_NAME="activecm/zeek:${zeek_release:-latest}"
@@ -155,6 +171,7 @@ main() {
 		$SUDO docker volume create zeek-zkg-state >/dev/null
 
 		docker_cmd=("docker" "run" "--detach")      # start container in the background
+		docker_cmd+=("--platform" "$docker_arch")   # force the right architecture
 		docker_cmd+=("--name" "$container")         # provide a predictable name
 		docker_cmd+=("--restart" "$restart")
 		docker_cmd+=("--cap-add" "net_raw")         # allow Zeek to listen to raw packets
@@ -308,7 +325,8 @@ main() {
 
 	pull|update)
 		#Command needed to pull down a new version of Zeek if there's a new docker image
-		$SUDO docker pull "$IMAGE_NAME"
+		#The "--platform linux/$docker_arch" makes sure we pull down the right CPU type (linux/amd64 for x86_64 aka intel or linux/arm64 for aarch64 aka arm)
+		$SUDO docker pull --platform "$docker_arch" "$IMAGE_NAME"
 
 		$0 stop
 		$0 start

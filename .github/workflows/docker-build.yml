@@ -55,7 +55,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           tags: |
-            type=semver,pattern={{version},value=${{ matrix.version }}
+            type=semver,pattern={{version}},value=${{ matrix.version }}
             type=raw,value=latest,enable=${{ matrix.release-tag == 'latest' }}
           
       

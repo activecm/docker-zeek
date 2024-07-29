@@ -28,8 +28,11 @@ jobs:
           - "6.2.1"
         include:
           - platform: linux/amd64
+            arch: amd64
           - platform: linux/arm64
+            arch: arm64
           - platform: linux/arm/v7
+            arch: armv7
           - version: "6.2.1"
             zkg: "3.0.1"
             release-tag: latest
@@ -74,8 +77,8 @@ jobs:
             ZEEK_VERSION=${{ matrix.version }}
             ZKG_VERSION=${{ matrix.zkg }}
           push: true
-          cache-from: type=registry,ref=${{ env.REGISTRY_IMAGE }}:${{ matrix.version }}-${{ matrix.platform }}-buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY_IMAGE }}:${{ matrix.version }}-${{ matrix.platform }}-buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache-${{ matrix.version }}-${{ matrix.arch }}
+          cache-to: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache-${{ matrix.version }}-${{ matrix.arch }},mode=max
 
       
       - name: Export digest

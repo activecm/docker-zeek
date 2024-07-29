@@ -96,7 +96,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ env.PLATFORM_PAIR }}
+          name: digests-${{ matrix.version }}-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -106,12 +106,17 @@ jobs:
       group: "ubuntu-runners-l"
     needs:
       - build
+    strategy:
+      matrix:
+        include:
+        - version: "6.2.1"
+          release-tag: latest
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.version }}-*
           merge-multiple: true
       
       - name: Set up Docker Buildx
@@ -122,6 +127,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ matrix.version }}
+            type=raw,value=latest,enable=${{ matrix.release-tag == 'latest' }}
       
       - name: Login to Docker Hub
         uses: docker/login-action@v3

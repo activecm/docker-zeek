@@ -15,7 +15,8 @@ env:
 
 jobs:
   build:
-    runs-on: "ubuntu-runners-l"
+    runs-on: 
+      group: "ubuntu-runners-l"
     strategy:
       fail-fast: false
       matrix:
@@ -92,7 +93,8 @@ jobs:
           retention-days: 1
 
   merge:
-    runs-on: "ubuntu-runners-l"
+    runs-on: 
+      group: "ubuntu-runners-l"
     needs:
       - build
     steps:

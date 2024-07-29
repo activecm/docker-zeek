@@ -15,23 +15,23 @@ env:
 
 jobs:
   build:
-    runs-on: "ubuntu-large-${{ matrix.runner }}"
+    runs-on: "${{ matrix.runner }}"
     strategy:
       fail-fast: false
       matrix:
         platform:
           - linux/amd64
           # - linux/arm/v7
-          # - linux/arm64
+          - linux/arm64
         version: 
           - "6.2.1"
         include:
           - platform: linux/amd64
             arch: amd64
-            runner: 1
-          # - platform: linux/arm64
-          #   arch: arm64
-          #   runner: 2
+            runner: ubuntu-large-1
+          - platform: linux/arm64
+            arch: arm64
+            runner: ubuntu-arm-l
           # - platform: linux/arm/v7
           #   arch: armv7
           #   runner: 3

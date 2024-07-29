@@ -34,6 +34,10 @@ jobs:
             release-tag: latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Prepare
         run: |
           platform=${{ matrix.platform }}
@@ -61,6 +65,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v6
         with:
+          context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true

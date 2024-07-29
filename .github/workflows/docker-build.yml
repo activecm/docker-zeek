@@ -29,12 +29,12 @@ jobs:
           - platform: linux/amd64
             arch: amd64
             runner: 1
-          - platform: linux/arm64
-            arch: arm64
-            runner: 2
-          - platform: linux/arm/v7
-            arch: armv7
-            runner: 3
+          # - platform: linux/arm64
+          #   arch: arm64
+          #   runner: 2
+          # - platform: linux/arm/v7
+          #   arch: armv7
+          #   runner: 3
           - version: "6.2.1"
             zkg: "3.0.1"
             release-tag: latest
@@ -54,6 +54,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=semver,version=${{ matrix.version }}
+            type=raw,value=latest,enable=${{ matrix.release-tag == 'latest' }}
+          
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

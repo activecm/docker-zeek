@@ -3,7 +3,7 @@ FROM alpine AS builder
 ARG ZEEK_VERSION=6.2.1
 #ARG AF_PACKET_VERSION=3.0.2
 
-ARG BUILD_PROCS=2
+ARG BUILD_PROCS=4
 
 RUN apk add --no-cache zlib openssl libstdc++ libpcap libgcc
 RUN apk add --no-cache -t .build-deps \

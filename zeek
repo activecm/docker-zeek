@@ -5,6 +5,13 @@
 #Many thanks to Ethan for his help with the design and implementation, and for the help in troubleshooting readpcap
 #V0.5.2
 
+#The --ulimit settings in this file address an issue in an upstream library
+#used by zeek where the library allocates two arrays of ints, one entry for 
+#every possible file descriptor (which is massive in RHEL9 and derivatives
+#and allocates 4gb physical, 16gb virtual.  See
+# https://github.com/zeek/zeek/issues/2951
+#for more details.
+
 #==== USER CUSTOMIZATION ====
 #The default Zeek top level directory (/opt/zeek) can be overridden with
 #the "zeek_top_dir" environment variable.  Edit /etc/profile.d/zeek and 
@@ -33,6 +40,7 @@ init_zeek_cfg() {
 	# create a temporary container to run commands
 	local container="zeek-init-$RANDOM"
 	$SUDO docker run \
+		--ulimit nofile=1048576:1048576 \
 		--detach \
 		--name $container \
 		-v "$HOST_ZEEK":"/zeek" \
@@ -155,6 +163,7 @@ main() {
 		$SUDO docker volume create zeek-zkg-state >/dev/null
 
 		docker_cmd=("docker" "run" "--detach")      # start container in the background
+		docker_cmd+=("--ulimit" "nofile=1048576:1048576")
 		docker_cmd+=("--name" "$container")         # provide a predictable name
 		docker_cmd+=("--restart" "$restart")
 		docker_cmd+=("--cap-add" "net_raw")         # allow Zeek to listen to raw packets
@@ -219,6 +228,7 @@ main() {
 		$SUDO docker volume create zeek-zkg-state >/dev/null
 
 		docker_cmd=("docker" "run" "--rm")          # start container in the foreground
+		docker_cmd+=("--ulimit" "nofile=1048576:1048576")
 		docker_cmd+=("--workdir" "/usr/local/zeek/logs/")
 
 		# allow packages installed via zkg to persist across restarts

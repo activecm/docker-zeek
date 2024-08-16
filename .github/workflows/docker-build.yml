@@ -55,8 +55,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           tags: |
-            type=semver,pattern={{version}},value=${{ matrix.version }}
+            type=semver,pattern={{version}},value=${{ matrix.version }},enable={{is_default_branch}}
             type=raw,value=latest,enable=${{ matrix.release-tag == 'latest' }}
+            type=raw,value=${{ matrix.version }}-${{ github.ref_name }}, enable={{!is_default_branch}}
           
       
       - name: Set up QEMU
@@ -83,8 +84,8 @@ jobs:
             ZEEK_VERSION=${{ matrix.version }}
             ZKG_VERSION=${{ matrix.zkg }}
           push: true
-          cache-from: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache-${{ matrix.version }}-${{ matrix.arch }}
-          cache-to: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache-${{ matrix.version }}-${{ matrix.arch }},mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache-${{ github.ref_name }}-${{ matrix.version }}-${{ matrix.arch }}
+          cache-to: type=registry,ref=${{ env.REGISTRY_IMAGE }}:buildcache-${{ github.ref_name }}-${{ matrix.version }}-${{ matrix.arch }},mode=max
 
       
       - name: Export digest

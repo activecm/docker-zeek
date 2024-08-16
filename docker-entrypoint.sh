@@ -51,7 +51,8 @@ zeekctl cron enable
 trap - ERR
 
 # daemonize cron but log output to stdout
-crond -b -L /dev/fd/1
+# TODO: is this enough to convert cron to a daemon? (in alpine this was crond -b -L /dev/fd/1)
+cron -L /dev/fd/1
 
 # infinite loop to prevent container from exiting and allow this script to process signals
 while :; do sleep 1s; done

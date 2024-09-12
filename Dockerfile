@@ -8,7 +8,6 @@ ARG BUILD_PROCS=4
 RUN apk add --no-cache zlib openssl libstdc++ libpcap libgcc
 RUN apk add --no-cache -t .build-deps \
     bsd-compat-headers \
-    libmaxminddb-dev \
     linux-headers \
     openssl-dev \
     libpcap-dev \
@@ -69,7 +68,7 @@ FROM alpine AS final
 # util-linux provides taskset command needed to pin CPUs
 # py3-pip and git are needed for zeek's package manager
 RUN apk --no-cache add \
-    ca-certificates zlib openssl libstdc++ libpcap libmaxminddb libgcc fts krb5-libs \
+    ca-certificates zlib openssl libstdc++ libpcap libgcc fts krb5-libs \
     python3 bash \
     ethtool \
     util-linux \

@@ -321,6 +321,7 @@ main() {
 		$SUDO docker pull "$IMAGE_NAME"
 
 		$0 stop
+		$SUDO docker volume rm zeek-zkg-script
 		$0 start
 		;;
 

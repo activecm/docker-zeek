@@ -1,1 +1,29 @@
-logs/*
+.DS_Store
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Go workspace file
+go.work
+go.work.sum
+
+# executable
+/zeek
+/zeek-linux
+/.release_tmp
+zeek-linux-*.tar.gz
+zeek-image-offline-*.tar.gz
+checksums.txt

@@ -1,57 +1,54 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
+shopt -s nullglob
 
-# exit script if an error is encountered
-set -e
-
-if [ ! -f /usr/local/zeek/etc/node.cfg ] || [ ! -s /usr/local/zeek/etc/node.cfg ]; then
-	# node.cfg doesn't exist or is empty
-	if [ -t 0 ]; then
-	    # at a tty, so start the config wizard
-		zeekcfg -o /usr/local/zeek/etc/node.cfg --type afpacket --processes 0 --no-pin
-	fi
-	if [ ! -f /usr/local/zeek/etc/node.cfg ] || [ ! -s /usr/local/zeek/etc/node.cfg ]; then
-		# if still doesn't exist
-		echo
-		echo "You must first create a node.cfg file and mount it into the container."
-		exit 1
-	fi
+if [[ ! -f /usr/local/zeek/etc/node.cfg ]] || [[ ! -s /usr/local/zeek/etc/node.cfg ]]; then
+	echo "error: node.cfg is missing or empty. mount it into /usr/local/zeek/etc/node.cfg." >&2
+	exit 1
 fi
 
-# do final log rotation
 stop() {
-	echo "Stopping zeek..."
+	echo "stopping zeek..."
 	zeekctl stop
-	trap - SIGINT SIGTERM
-	exit
+	exit 0
 }
+trap stop SIGINT SIGTERM
 
-# run zeekctl diag on error
-diag() {
-	echo "Running zeekctl diag for debugging"
-	zeekctl diag
-	trap - ERR
-}
-trap 'diag' ERR
+# disable NIC offloading on monitored interfaces for accurate packet capture.
+# parse unique interfaces from node.cfg, stripping af_packet:: prefix if present.
+# errors are non-fatal since some flags may not be supported on all NICs or VMs.
+declare -A seen_ifaces
+while IFS='=' read -r key value; do
+	[[ "$key" =~ ^[[:space:]]*interface ]] || continue
+	iface="${value##af_packet::}"
+	iface="${iface// /}"
+	[[ -n "$iface" ]] || continue
+	[[ -z "${seen_ifaces[$iface]+x}" ]] || continue
+	seen_ifaces[$iface]=1
+	if ethtool -K "$iface" rx off tx off sg off tso off gso off gro off lro off >/dev/null 2>&1; then
+		echo "disabled NIC offloading on $iface"
+	else
+		echo "warning: failed to disable some offloading features on $iface (this may be expected in virtual environments)" >&2
+	fi
+done < /usr/local/zeek/etc/node.cfg
 
-# ensure Zeek has a valid, updated config, and then start Zeek
-echo "Checking your Zeek configuration..."
-# generate a single local.zeek from a bunch of partials
-#We specifically strip out the line for misc/scan as it's no longer part of zeek and it's darn near impossible to find.
-cat /usr/local/zeek/share/zeek/site/autoload/* | grep -v '^#' | grep -v 'misc/scan' >/usr/local/zeek/share/zeek/site/local.zeek
-zeekctl check >/dev/null
-zeekctl install
-zeekctl start
+# build local.zeek from autoload scripts, stripping comments
+autoload=(/usr/local/zeek/share/zeek/site/autoload/*.zeek)
+if [[ ${#autoload[@]} -eq 0 ]]; then
+	echo "error: no .zeek scripts found in autoload directory" >&2
+	exit 1
+fi
+grep -hv '^#' "${autoload[@]}" > /usr/local/zeek/share/zeek/site/local.zeek
 
-# ensure spool logs are rotated when container is stopped
-trap 'stop' SIGINT SIGTERM
+zeekctl check || { echo "error: zeek configuration check failed" >&2; exit 1; }
+zeekctl install || { echo "error: zeekctl install failed" >&2; exit 1; }
+zeekctl start || { echo "error: zeekctl start failed" >&2; exit 1; }
 
-# periodically run the Zeek cron monitor to restart any terminated processes
-zeekctl cron enable
-# disable the zeekctl ERR trap as there are no more zeek commands to fail
-trap - ERR
+crond -b -L /dev/fd/1 || { echo "error: failed to start crond" >&2; exit 1; }
+echo "cron enabled"
 
-# daemonize cron but log output to stdout
-crond -b -L /dev/fd/1
-
-# infinite loop to prevent container from exiting and allow this script to process signals
-while :; do sleep 1s; done
+# keep the container running while remaining responsive to signals.
+# backgrounding sleep and using wait allows bash to process SIGTERM traps.
+# without this, bash blocks on the foreground sleep and never runs the trap.
+sleep infinity &
+wait $!

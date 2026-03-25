@@ -5,8 +5,8 @@
 
 
 # @unload specifies a Zeek script that we don't want to load (so subsequent attempts to load will be skipped). 
-# However, if the specified script has already been loaded, then this directive has no affect.
-# https://docs.zeek.org/en/master/script-reference/directives.html#unload
+# However, if the specified script has already been loaded, then this directive has no effect.
+# https://docs.zeek.org/en/current/script-reference/directives.html#unload
 
 # Disable MD5 and SHA1 hashing for all files.
 @unload frameworks/files/hash-all-files

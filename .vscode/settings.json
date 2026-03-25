@@ -1,0 +1,24 @@
+// ***** settings for docker-zeek project *****
+// putting this in a separate settings.json file ensures that adding the
+// project to a bigger workspace will still preserve these settings
+{
+    "editor.detectIndentation": false,
+
+    // === Go  ===
+    "go.testFlags": [ "-v", "-count=1" ],
+    "go.vetOnSave": "off",
+    "go.lintTool": "golangci-lint-v2",
+    "go.lintFlags": [
+        // "--fast",
+        // "--fix",
+        "--config=${workspaceFolder}/.golangci.yml"
+    ],
+    "gopls": {
+        "ui.semanticTokens": true,
+        "build.buildFlags": ["-tags=integration"],
+    },
+    "[go]": {
+        "editor.defaultFormatter": "golang.go",
+        "editor.formatOnSave": true
+    },
+}

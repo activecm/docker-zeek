@@ -1,0 +1,687 @@
+version: "2"
+
+linters:
+  # Default set of linters
+  # The value can be:
+  # - `standard`: https://golangci-lint.run/docs/linters/#enabled-by-default
+  # - `all`: enables all linters by default.
+  # - `none`: disables all linters by default.
+  # - `fast`: enables only linters considered as "fast" (`golangci-lint help linters --json | jq '[ .[] | select(.fast==true) ] | map(.name)'`).
+  # Default: standard
+  default: standard
+
+  # Enable specific linter
+  enable:
+    # Check for pass []any as any in variadic func(...any)
+    - asasalint
+
+    # Checks for unusual ASCII identifiers.
+    - asciicheck
+
+    # Checks for dangerous unicode character sequences.
+    - bidichk
+
+    # Detects duplicate fragments of code.
+    - dupl
+
+    # Check for two durations multiplied together.
+    - durationcheck
+
+    # Forces to not skip error check.
+    - errcheck
+
+    # Checks `Err-` prefix for var and `-Error` suffix for error type.
+    - errname
+
+    # Suggests to use `%w` for error-wrapping.
+    - errorlint
+
+    # Checks for pointers to enclosing loop variables.
+    # - exportloopref
+    - copyloopvar
+
+    # Validates go compiler directive comments (//go:)
+    - gocheckcompilerdirectives
+
+    # Finds repeated strings that could be replaced by a constant
+    - goconst
+
+    # Maintains checks which are currently not implemented in other linters.
+    - gocritic
+
+    # Allow or ban replace directives in go.mod or force explanation for retract directives.
+    - gomoddirectives
+
+    # Powerful security-oriented linter. But requires some time to
+    # configure it properly, see https://github.com/securego/gosec#available-rules
+    - gosec
+
+    # Examines Go source code and reports suspicious constructs. It is roughly the same as 'go vet' and uses its passes.
+    - govet
+
+    # Detects when assignments to existing variables are not used
+    - ineffassign
+
+    # Spell checker
+    - misspell
+
+    # Checks that functions with naked returns are not longer than a maximum size (can be zero).
+    - nakedret
+
+    # Both require a bit more explicit returns.
+    - nilerr
+
+    # Forces comment why another check is disabled.
+    - nolintlint
+
+    # Finds shadowing of Go's predeclared identifiers
+    - predeclared
+
+    # Drop-in replacement of `golint`.
+    - revive
+
+    # Detects bugs, suggests code simplifications, points out dead code, etc
+    - staticcheck
+
+    # Test-related checks
+    - testableexamples
+    - thelper
+    - tparallel
+
+    # Remove unnecessary type conversions
+    - unconvert
+
+    # Finds unused parameters
+    # - unparam
+
+    # Finds unused declarations
+    - unused
+
+    # Detect the possibility to use variables/constants from stdlib.
+    - usestdlibvars
+
+    # Reports uses of functions with replacement inside the testing package.
+    - usetesting
+
+    # Finds wasted assignment statements.
+    - wastedassign
+
+    # - wsl_v5
+
+  # Disable specific linters.
+  # disable:
+
+  # All available settings of specific linters.
+  settings:
+    # See the dedicated "linters.settings" documentation section.
+
+    # Detects duplicate fragments of code.
+    dupl:
+      # Tokens count to trigger issue.
+      # Default: 150
+      threshold: 200
+
+    # Checks for unchecked errors
+    errcheck:
+      # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
+      # Default: false
+      check-type-assertions: true
+      # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`.
+      # Default: false
+      check-blank: false
+      # To disable the errcheck built-in exclude list.
+      # See `-excludeonly` option in https://github.com/kisielk/errcheck#excluding-functions for details.
+      # Default: false
+      disable-default-exclusions: false
+      # List of functions to exclude from checking, where each entry is a single function to exclude.
+      # See https://github.com/kisielk/errcheck#excluding-functions for details.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Print.*
+        - fmt.Errorf
+        - encoding/binary.Write
+        # - io/ioutil.ReadFile
+        # - io.Copy(*bytes.Buffer)
+        # - io.Copy(os.Stdout)
+      # Display function signature instead of selector.
+      # Default: false
+      verbose: true
+
+    # Finds repeated strings that could be replaced by a constant
+    goconst:
+      # Minimal length of string constant.
+      # Default: 3
+      min-len: 3
+      # Minimum occurrences of constant string count to trigger issue.
+      # Default: 3
+      min-occurrences: 5
+      # Look for existing constants matching the values.
+      # Default: true
+      match-constant: false
+      # Search also for duplicated numbers.
+      # Default: false
+      numbers: false
+      # Minimum value, only works with `goconst.numbers`.
+      # Default: 3
+      min: 3
+      # Maximum value, only works with `goconst.numbers`.
+      # Default: 3
+      max: 3
+      # Ignore when constant is not used as function argument.
+      # Default: true
+      ignore-calls: true
+      # Exclude strings matching the given regular expression.
+      # Default: ""
+      # ignore-string-values:
+      #   - "foo.+"
+      # Detects constants with identical values.
+      # Default: false
+      find-duplicates: false
+      # Evaluates of constant expressions like Prefix + "suffix".
+      # Default: false
+      eval-const-expressions: false
+
+    # Provides diagnostics that check for bugs, performance and style issues
+    gocritic:
+      # Enable multiple checks by tags in addition to default checks.
+      # See https://github.com/go-critic/go-critic#usage -> section "Tags".
+      # Default: []
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+      disabled-tags:
+        - experimental
+        - opinionated
+      disabled-checks:
+        - unlambda
+      # Settings passed to gocritic.
+      # The settings key is the name of a supported gocritic checker.
+      # The list of supported checkers can be find in https://go-critic.github.io/overview.
+      settings:
+        captLocal:
+          # Whether to restrict checker to params only
+          paramsOnly: false # Default: true
+        underef:
+          # Whether to skip (*x).method() calls where x is a pointer receiver
+          skipRecvDeref: false # Default: true
+        rangeExprCopy:
+          sizeThreshold: 512 # Default: 512
+          skipTestFuncs: true
+        rangeValCopy:
+          sizeThreshold: 200 # Default: 128
+          skipTestFuncs: true
+        hugeParam:
+          sizeThreshold: 150 # Default: 80
+
+    # Manage the use of 'replace', 'retract', and 'excludes' directives in go.mod.
+    gomoddirectives:
+      # Allow local `replace` directives.
+      # Default: false
+      replace-local: true
+      # List of allowed `replace` directives.
+      # Default: []
+      # replace-allow-list:
+      #   - launchpad.net/gocheck
+      # Allow to not explain why the version has been retracted in the `retract` directives.
+      # Default: false
+      retract-allow-no-explanation: true
+      # Forbid the use of the `exclude` directives.
+      # Default: false
+      exclude-forbidden: true
+      # Forbid the use of the `ignore` directives (>= go1.25).
+      # Default: false
+      ignore-forbidden: true
+      # Forbid the use of the `toolchain` directive.
+      # Default: false
+      toolchain-forbidden: true
+      # Defines a pattern to validate `toolchain` directive.
+      # Default: '' (no match)
+      toolchain-pattern: 'go1\.25\.\d+$'
+      # Forbid the use of the `tool` directives.
+      # Default: false
+      tool-forbidden: true
+      # Forbid the use of the `godebug` directive.
+      # Default: false
+      go-debug-forbidden: true
+      # Defines a pattern to validate `go` minimum version directive.
+      # Default: '' (no match)
+      go-version-pattern: '\d\.\d+(\.0)?'
+      # Check the validity of the module path.
+      # Default: false
+      check-module-path: true
+
+    # Examines Go source code and reports suspicious constructs. It is roughly the same as 'go vet' and uses its passes.
+    govet:
+      enable:
+        # Check for shadowed variables
+        - shadow
+      settings:
+        shadow:
+          # Whether to be strict about shadowing; can be noisy.
+          strict: false # Default: true
+
+    gosec:
+      excludes:
+        - G104 # Unhandled errors (covered by errcheck, avoids duplicate nolint directives)
+        - G115 # Integer overflow conversion (false positives on known-safe conversions)
+        - G204 # Subprocess launched with variable args (we construct docker commands internally)
+        - G301 # Directory permissions (zeek logs need to be readable by other tools)
+        - G304 # Potential file inclusion via variable
+        - G306 # File permissions (zeek config files are not secrets)
+
+    # Checks that functions with naked returns are not longer than a maximum size (can be zero).
+    nakedret:
+      max-func-lines: 30 # Default: 30
+
+    # Reports ill-formed or insufficient nolint directives
+    nolintlint:
+      # Disable to ensure that all nolint directives actually have an effect.
+      # Default: false
+      allow-unused: true
+      # Exclude following linters from requiring an explanation.
+      # Default: []
+      allow-no-explanation: []
+      # Enable to require an explanation of nonzero length after each nolint directive.
+      # Default: false
+      require-explanation: true
+      # Enable to require nolint directives to mention the specific linter being suppressed.
+      # Default: false
+      require-specific: true
+
+    revive:
+      # Maximum number of open files at the same time.
+      # See https://github.com/mgechev/revive#command-line-flags
+      # Defaults to unlimited.
+      max-open-files: 2048
+      # Sets the default severity.
+      # See https://github.com/mgechev/revive#configuration
+      # Default: warning
+      severity: warning
+      # Enable all available rules.
+      # Default: false
+      enable-all-rules:
+        true
+        # By default, the default rules are enabled,
+      # but if you explicitly define or configure a rule, the default rules will be disabled.
+      # This option, when set to `true`, allows you to avoid explicitly redefining default rules when adding a rule.
+      # Default: false
+      enable-default-rules: true
+      # Enable validation of comment directives.
+      # See https://github.com/mgechev/revive#comment-directives
+      directives:
+        - name: specify-disable-reason
+          severity: warning
+      # Sets the default failure confidence.
+      # This means that linting errors with less than 0.8 confidence will be ignored.
+      # Default: 0.8
+      confidence: 0.8
+      # Revive handles the default rules in a way that can be unexpected:
+      # - If there are no explicit rules, the default rules are used.
+      # - If there is at least one explicit rule, the default rules are not used, unless `enable-default-rules` is `true`.
+      # Run `GL_DEBUG=revive golangci-lint run --enable-only=revive` to see default, all available rules, and enabled rules.
+      rules:
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#add-constant
+        - name: add-constant
+          disabled: true
+          # severity: warning
+          # exclude: [""]
+          # arguments:
+          #   - max-lit-count: "3"
+          #     allow-strs: '""'
+          #     allow-ints: "0,1,2"
+          #     allow-floats: "0.0,0.,1.0,1.,2.0,2."
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#argument-limit
+        - name: argument-limit
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments: [10]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#cognitive-complexity
+        - name: cognitive-complexity
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+          # arguments: [7]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#confusing-results
+        - name: confusing-results
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#cyclomatic
+        - name: cyclomatic
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+          # arguments: [3]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#deep-exit
+        - name: deep-exit
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#empty-block
+        - name: empty-block
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#empty-lines
+        - name: empty-lines
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#exported
+        - name: exported
+          # severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - "disable-stuttering-check"
+            # - "check-private-receivers"
+            # - "say-repetitive-instead-of-stutters"
+            # - "check-public-interface"
+            - "disable-checks-on-constants"
+            # - "disable-checks-on-functions"
+            # - "disable-checks-on-methods"
+            - "disable-checks-on-types"
+            - "disable-checks-on-variables"
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#flag-parameter
+        - name: flag-parameter
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#function-length
+        - name: function-length
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+          # arguments: [10, 0]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#function-result-limit
+        - name: function-result-limit
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments: [8]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#get-return
+        - name: get-return
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#identical-switch-branches
+        - name: identical-switch-branches
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#if-return
+        - name: if-return
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#line-length-limit
+        - name: line-length-limit
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments: [250]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#max-control-nesting
+        - name: max-control-nesting
+          # severity: warning
+          disabled: false
+          exclude: [""]
+          arguments: [7]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#max-public-structs
+        - name: max-public-structs
+          # severity: warning
+          disabled: false
+          exclude: [""]
+          arguments: [8]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#package-comments
+        - name: package-comments
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#struct-tag
+        - name: struct-tag
+          severity: warning
+          disabled: false
+          exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#unexported-return
+        - name: unexported-return
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#unhandled-error
+        - name: unhandled-error
+          # severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - ^fmt.Printf
+            - ^fmt.Fprint
+            - ^fmt.Fprintf
+            - ^fmt.Fprintln
+            - ^fmt.Fprint
+            - ^fmt.Println
+            - ^io.Closer.Close
+            - ^os.File.Close
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#unused-receiver
+        - name: unused-receiver
+          # severity: warning
+          disabled: true
+          # exclude: [""]
+          # arguments:
+          #   - allow-regex: "^_"
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#var-naming
+        - name: var-naming
+          severity: warning
+          disabled: false
+          exclude: ["don't use an underscore in package name"]
+          arguments:
+            - [] # AllowList
+            - [] # DenyList
+            - - upper-case-const: true
+                skip-package-name-checks: true
+                # skip-initialism-name-checks: true
+                # skip-package-name-collision-with-go-std: true
+                # extra-bad-package-names:
+                #   - helpers
+                #   - models
+
+    staticcheck:
+      checks:
+        - all
+        - -ST1000 # missing package comment
+        - -ST1003 # poorly chosen identifier
+        - -SA9003 # empty if/else branch
+        - -ST1022 # exported var/const doc format
+
+    usetesting:
+      # Enable/disable `os.CreateTemp("", ...)` detections.
+      # Default: true
+      os-create-temp: false
+      # Enable/disable `os.MkdirTemp()` detections.
+      # Default: true
+      os-mkdir-temp: false
+      # Enable/disable `os.Setenv()` detections.
+      # Default: true
+      os-setenv: false
+      # Enable/disable `os.TempDir()` detections.
+      # Default: false
+      os-temp-dir: true
+      # Enable/disable `os.Chdir()` detections.
+      # Disabled if Go < 1.24.
+      # Default: true
+      os-chdir: false
+      # Enable/disable `context.Background()` detections.
+      # Disabled if Go < 1.24.
+      # Default: false
+      context-background: true
+      # Enable/disable `context.TODO()` detections.
+      # Disabled if Go < 1.24.
+      # Default: false
+      context-todo: true
+
+  exclusions:
+    # Mode of the generated files analysis.
+    #
+    # - `strict`: sources are excluded by strictly following the Go generated file convention.
+    #    Source files that have lines matching only the following regular expression will be excluded: `^// Code generated .* DO NOT EDIT\.$`
+    #    This line must appear before the first non-comment, non-blank text in the file.
+    #    https://go.dev/s/generatedcode
+    # - `lax`: sources are excluded if they contain lines like `autogenerated file`, `code generated`, `do not edit`, etc.
+    # - `disable`: disable the generated files exclusion.
+    #
+    # Default: strict
+    generated: strict
+    # Log a warning if an exclusion rule is unused.
+    # Default: false
+    warn-unused: false
+    # Predefined exclusion rules.
+    # Default: []
+    # presets:
+    #   - comments
+    #   - std-error-handling
+    #   - common-false-positives
+    #   - legacy
+    # Excluding configuration per-path, per-linter, per-text and per-source.
+    rules:
+      # duplicate code is fine in tests
+      - linters: [dupl]
+        path: "(.+)_test.go"
+
+      # ignore shadowing of err and ctx
+      - linters: [govet]
+        text: 'shadow: declaration of "(err|ctx)" shadows declaration at'
+
+      - linters: [revive]
+        # Regular expression to match calls to strings.Builder.WriteString
+        # This function ALWAYS returns nil for error, so it's safe to ignore it
+        text: "unhandled-error: .*strings\\.Builder\\.WriteString.*"
+
+      # binary.Write to bytes.Buffer never fails
+      - linters: [revive]
+        text: "unhandled-error: .*encoding/binary\\.Write.*"
+
+      # bytes.Buffer.Write never fails
+      - linters: [revive]
+        path: "(.+)_test.go"
+        text: "unhandled-error: .*bytes\\.Buffer\\.Write.*"
+
+      # tolerate long functions in tests
+      - linters: [revive]
+        path: "(.+)_test.go"
+        text: "function-length: .*"
+
+      # tolerate long lines in tests
+      - linters: [revive]
+        path: "(.+)_test.go"
+        text: "line-length-limit: .*"
+
+      # tolerate deep-exit in tests
+      - linters: [revive]
+        path: "(.+)_test.go"
+        text: "deep-exit: .*"
+
+      # no argument limit in tests
+      - linters: [revive]
+        path: "(.+)_test.go"
+        text: "argument-limit: .*"
+
+      # tolerate underscores in variable names in tests
+      - linters: [revive]
+        path: "(.+)_test.go"
+        text: "var-naming: don't use underscores in Go names; .*"
+
+      - linters: [goconst]
+        path: "(.+)_test.go"
+        text: "occurrences, make it a constant"
+
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  # Maximum issues count per one linter.
+  # Set to 0 to disable.
+  # Default: 50
+  max-issues-per-linter: 0
+  # Maximum count of issues with the same text.
+  # Set to 0 to disable.
+  # Default: 3
+  max-same-issues: 0
+
+# Output configuration options.
+output:
+  # The formats used to render issues.
+  formats:
+    # Prints issues in a text format with colors, line number, and linter name.
+    # This format is the default format.
+    text:
+      # Output path can be either `stdout`, `stderr` or path to the file to write to.
+      # Default: stdout
+      path: stdout
+      # Print linter name in the end of issue text.
+      # Default: true
+      print-linter-name: true
+      # Print lines of code with issue.
+      # Default: true
+      print-issued-lines: true
+      # Use colors.
+      # Default: true
+      colors: true
+
+# Options for analysis running.
+run:
+  # Timeout for total work, e.g. 30s, 5m, 5m30s.
+  # If the value is lower or equal to 0, the timeout is disabled.
+  # Default: 0 (disabled)
+  timeout: 5m
+  # The mode used to evaluate relative paths.
+  # It's used by exclusions, Go plugins, and some linters.
+  # The value can be:
+  # - `gomod`: the paths will be relative to the directory of the `go.mod` file.
+  # - `gitroot`: the paths will be relative to the git root (the parent directory of `.git`).
+  # - `cfg`: the paths will be relative to the configuration file.
+  # - `wd` (NOT recommended): the paths will be relative to the place where golangci-lint is run.
+  # Default: cfg
+  # relative-path-mode: cfg
+  # Exit code when at least one issue was found.
+  # Default: 1
+  issues-exit-code: 1
+  # Include test files or not.
+  # Default: true
+  tests: true
+  # List of build tags, all linters use it.
+  # Default: []
+  # build-tags:
+  #   - mytag
+  # If set, we pass it to "go list -mod={option}". From "go help modules":
+  # If invoked with -mod=readonly, the go command is disallowed from the implicit
+  # automatic updating of go.mod described above. Instead, it fails when any changes
+  # to go.mod are needed. This setting is most useful to check that go.mod does
+  # not need updates, such as in a continuous integration and testing system.
+  # If invoked with -mod=vendor, the go command assumes that the vendor
+  # directory holds the correct copies of dependencies and ignores
+  # the dependency descriptions in go.mod.
+  #
+  # Allowed values: readonly|vendor|mod
+  # Default: ""
+  # modules-download-mode: mod
+  # Allow multiple parallel golangci-lint instances running.
+  # If false, golangci-lint acquires file lock on start.
+  # Default: false
+  allow-parallel-runners: false
+  # Allow multiple golangci-lint instances running, but serialize them around a lock.
+  # If false, golangci-lint exits with an error if it fails to acquire file lock on start.
+  # Default: false
+  allow-serial-runners: false
+  # Define the Go version limit.
+  # Default: use Go version from the go.mod file, fallback on the env var `GOVERSION`, fallback on 1.22.
+  # go-version: "1.24"
+  # Number of operating system threads (`GOMAXPROCS`) that can execute golangci-lint simultaneously.
+  # Default: 0 (automatically set to match Linux container CPU quota and
+  # fall back to the number of logical CPUs in the machine)
+  concurrency: 0

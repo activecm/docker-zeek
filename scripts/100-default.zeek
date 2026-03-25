@@ -5,17 +5,11 @@
 # This script logs which scripts were loaded during each run.
 @load misc/loaded-scripts
 
-# Apply the default tuning scripts for common tuning settings.
-@load tuning/defaults
-
 # Estimate and log capture loss.
 @load misc/capture-loss
 
 # Enable logging of memory, packet and lag statistics.
 @load misc/stats
-
-# DO NOT Load the scan detection script, no longer included.
-# @load misc/scan
 
 # Detect traceroute being run on the network. This could possibly cause
 # performance trouble when there are a lot of traceroutes on your network.
@@ -75,14 +69,13 @@
 @load protocols/ssh/interesting-hostnames
 
 # Detect SQL injection attacks.
-@load protocols/http/detect-sqli
+@load protocols/http/detect-sql-injection
 
 #### Network File Handling ####
 
-# Enable MD5 and SHA1 hashing for all files.
+# MD5/SHA1 hashing and Malware Hash Registry detection are loaded here
+# but disabled by 001-unload-scripts.zeek to reduce processing overhead.
 @load frameworks/files/hash-all-files
-
-# Detect SHA1 sums in Team Cymru's Malware Hash Registry.
 @load frameworks/files/detect-MHR
 
 # DO NOT Extend email alerting to include hostnames

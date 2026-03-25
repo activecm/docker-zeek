@@ -1,0 +1,73 @@
+{
+    "folders": [
+        {
+            "name": "docker-zeek",
+            "path": ".."
+        }
+    ],
+    "extensions": {
+        "recommendations": [
+            "eamodio.gitlens",
+            "github.vscode-github-actions",
+            "golang.go",
+            "MS-vsliveshare.vsliveshare",
+            "ms-azuretools.vscode-containers",
+            "ms-vscode-remote.remote-containers",
+            "naumovs.color-highlight",
+            "redhat.vscode-yaml",
+            "shd101wyy.markdown-preview-enhanced",
+            "tyriar.sort-lines",
+            "wayou.vscode-todo-highlight",
+        ]
+    },
+    "settings": {
+        // === General ===
+        "editor.detectIndentation": false,
+
+        // todo highlight settings
+        "todohighlight.keywords": [
+            {
+                "color": "#fff",
+                "backgroundColor": "#008B8B",
+                "text": "NOTE",
+            },
+        ],
+
+        // === Markdown ===
+        "[markdown]": {
+            "editor.tabSize": 2,
+        },
+
+        // === Shell Script ===
+        "[shellscript]": {
+            "editor.insertSpaces": true,
+            "editor.tabSize": 4,
+            "editor.detectIndentation": false
+        },
+
+        // === JSON ===
+        "json.format.keepLines": true,
+        "[json]": {
+            "editor.defaultFormatter": "vscode.json-language-features",
+            "editor.formatOnSave": true
+        },
+        "[jsonc]": {
+            "editor.defaultFormatter": "vscode.json-language-features",
+            "editor.formatOnSave": true
+        },
+
+        // === YAML ===
+        "[yaml]": {
+            "editor.defaultFormatter": "redhat.vscode-yaml",
+            "editor.formatOnSave": true,
+            "editor.tabSize": 2,
+            "editor.wordWrap": "off"
+        },
+
+        "[github-actions-workflow]": {
+            "editor.defaultFormatter": "redhat.vscode-yaml",
+            "editor.formatOnSave": true,
+            "editor.tabSize": 2,
+        },
+    }
+}

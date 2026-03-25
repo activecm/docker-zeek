@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - "v*"
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      # checks that go.mod/go.sum are up to date
+      - name: Mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Build
+        run: make build
+
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.8.0
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run tests
+        run: gotestsum --format pkgname --junitfile unit-results.xml -- ./... -count=1 -timeout 600s
+
+      - name: Unit test report
+        uses: mikepenz/action-junit-report@v5
+        if: always()
+        with:
+          report_paths: unit-results.xml
+          update_check: true
+          job_name: unit-tests
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build Docker image
+        run: |
+          make docker-build
+          source build.env
+          docker tag activecm/zeek:${ZEEK_VERSION} activecm/zeek:integration-test
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run integration tests
+        run: gotestsum --format pkgname --junitfile integration-results.xml -- -tags integration ./integration/... -count=1 -timeout 30m
+
+      - name: Integration test report
+        uses: mikepenz/action-junit-report@v5
+        if: always()
+        with:
+          report_paths: integration-results.xml
+          update_check: true
+          job_name: integration-tests

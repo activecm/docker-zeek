@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -53,6 +54,11 @@ func buildZeekImage(t *testing.T) {
 }
 
 func TestImageBuilds(t *testing.T) {
+	// skip if image was already built by make docker-build (e.g. in CI)
+	out, err := exec.Command("docker", "image", "inspect", testImage).CombinedOutput()
+	if err == nil && len(out) > 0 {
+		t.Skip("image already exists, skipping build test")
+	}
 	buildZeekImage(t)
 }
 

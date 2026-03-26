@@ -219,10 +219,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ contains(github.ref_name, '-') }}
-          body: |
-            **CLI binary** (requires internet to pull the Docker image):
-            - `zeek-linux-amd64.tar.gz` (x86_64)
-            - `zeek-linux-arm64.tar.gz` (ARM64)
+          generate_release_notes: true
           files: |
             ./artifacts/zeek-linux-*.tar.gz
             ./artifacts/checksums.txt

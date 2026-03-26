@@ -14,6 +14,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   build-binary:
+    name: build-binary (${{ matrix.name }})
     needs: ci
     runs-on: ubuntu-latest
     permissions:
@@ -40,10 +41,10 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
         run: |
-          source build.env
           version="${GITHUB_REF_NAME}"
+          release="${version#v}"
           go build \
-            -ldflags="-X main.Version=${version} -X main.DefaultRelease=${ZEEK_VERSION}" \
+            -ldflags="-X main.Version=${version} -X main.DefaultRelease=${release}" \
             -o zeek .
 
       - name: Package
@@ -57,6 +58,7 @@ jobs:
           path: zeek-linux-${{ matrix.name }}.tar.gz
 
   build-docker:
+    name: build-docker (${{ matrix.arch }})
     needs: ci
     runs-on: "${{ matrix.runner }}"
     permissions:
@@ -82,6 +84,8 @@ jobs:
           source build.env
           echo "ZEEK_VERSION=${ZEEK_VERSION}" >> $GITHUB_ENV
           echo "ALPINE_VERSION=${ALPINE_VERSION}" >> $GITHUB_ENV
+          # strip 'v' prefix from git tag for Docker image tag
+          echo "IMAGE_TAG=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
 
       - name: Prepare
         run: |
@@ -94,8 +98,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           tags: |
-            type=raw,value=${{ env.ZEEK_VERSION }}
-            type=raw,value=latest
+            type=raw,value=${{ env.IMAGE_TAG }}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -104,15 +108,12 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Login to Docker Hub
-        if: ${{ !contains(github.ref_name, '-') }}
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      # stable releases: build and push to Docker Hub by digest
       - name: Build and push by digest
-        if: ${{ !contains(github.ref_name, '-') }}
         id: build-push
         uses: docker/build-push-action@v7
         with:
@@ -127,14 +128,12 @@ jobs:
           no-cache-filters: final
 
       - name: Export digest
-        if: ${{ !contains(github.ref_name, '-') }}
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build-push.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        if: ${{ !contains(github.ref_name, '-') }}
         uses: actions/upload-artifact@v7
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
@@ -142,41 +141,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      # rc releases: build locally only (no Docker Hub push)
-      - name: Build image locally
-        if: ${{ contains(github.ref_name, '-') }}
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: ${{ matrix.platform }}
-          build-args: |
-            ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            ZEEK_VERSION=${{ env.ZEEK_VERSION }}
-          load: true
-          tags: ${{ env.REGISTRY_IMAGE }}:${{ env.ZEEK_VERSION }}
-          no-cache-filters: final
-
-      # all releases: save image for offline use
-      - name: Save Docker image for offline use (stable)
-        if: ${{ !contains(github.ref_name, '-') }}
-        run: |
-          docker pull --platform ${{ matrix.platform }} ${{ env.REGISTRY_IMAGE }}@${{ steps.build-push.outputs.digest }}
-          docker tag ${{ env.REGISTRY_IMAGE }}@${{ steps.build-push.outputs.digest }} ${{ env.REGISTRY_IMAGE }}:${{ env.ZEEK_VERSION }}
-          docker save ${{ env.REGISTRY_IMAGE }}:${{ env.ZEEK_VERSION }} | gzip > "zeek-image-offline-${{ matrix.name }}.tar.gz"
-
-      - name: Save Docker image for offline use (rc)
-        if: ${{ contains(github.ref_name, '-') }}
-        run: |
-          docker save ${{ env.REGISTRY_IMAGE }}:${{ env.ZEEK_VERSION }} | gzip > "zeek-image-offline-${{ matrix.name }}.tar.gz"
-
-      - name: Upload image artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: zeek-image-offline-${{ matrix.name }}
-          path: zeek-image-offline-${{ matrix.name }}.tar.gz
-
   merge-docker:
-    if: ${{ !contains(github.ref_name, '-') }}
     runs-on:
       group: "ubuntu-runners-l"
     needs: build-docker
@@ -188,8 +153,7 @@ jobs:
 
       - name: Load versions
         run: |
-          source build.env
-          echo "ZEEK_VERSION=${ZEEK_VERSION}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
 
       - name: Download digests
         uses: actions/download-artifact@v8
@@ -207,8 +171,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           tags: |
-            type=raw,value=${{ env.ZEEK_VERSION }}
-            type=raw,value=latest
+            type=raw,value=${{ env.IMAGE_TAG }}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4
@@ -224,14 +188,14 @@ jobs:
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ env.ZEEK_VERSION }}
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ env.IMAGE_TAG }}
 
   release:
     needs:
       - build-binary
       - build-docker
       - merge-docker
-    if: ${{ !failure() && !cancelled() && needs.build-binary.result == 'success' && needs.build-docker.result == 'success' && (needs.merge-docker.result == 'success' || needs.merge-docker.result == 'skipped') }}
+    if: ${{ !failure() && !cancelled() && needs.build-binary.result == 'success' && needs.build-docker.result == 'success' && needs.merge-docker.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -259,8 +223,6 @@ jobs:
             **CLI binary** (requires internet to pull the Docker image):
             - `zeek-linux-amd64.tar.gz` (x86_64)
             - `zeek-linux-arm64.tar.gz` (ARM64)
-
-            **Docker image (offline installs only)** - load with `docker load -i <file>` before running the CLI:
-            - `zeek-image-offline-amd64.tar.gz`
-            - `zeek-image-offline-arm64.tar.gz`
-          files: ./artifacts/*
+          files: |
+            ./artifacts/zeek-linux-*.tar.gz
+            ./artifacts/checksums.txt

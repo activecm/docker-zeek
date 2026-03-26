@@ -61,7 +61,7 @@ docker-save:
 	@echo "✔ Saved zeek-image-offline-$(GOARCH).tar.gz"
 
 # ----------------------
-# release artifacts
+# local release artifacts (CI uses its own build steps with the git tag)
 # ----------------------
 release-binaries: clean-release
 	@echo "→ Building release binaries..."

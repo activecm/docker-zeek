@@ -19,8 +19,8 @@ const defaultHostDir = "/opt/zeek"
 var Version string
 
 // DefaultRelease is the Docker image tag this CLI was built for.
-// populated at build time via -ldflags from ZEEK_VERSION in build.env
-// with bare "go run ." resolveConfig falls back to "latest"
+// populated at build time via -ldflags: from build.env locally, from the git tag in CI.
+// falls back to "latest" when unset (e.g. "go run .")
 var DefaultRelease string
 
 func main() {

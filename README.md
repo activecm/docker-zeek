@@ -25,7 +25,7 @@ Download the CLI for your architecture from the [latest release](https://github.
 ```bash
 tar xzf zeek-linux-amd64.tar.gz
 sudo mv zeek /usr/local/bin/zeek
-zeek start
+sudo zeek start
 ```
 
 On first run, the CLI will prompt you to pick a network interface and number of worker processes. Zeek logs are written to `/opt/zeek/logs/`.

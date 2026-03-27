@@ -32,7 +32,7 @@ jobs:
         run: go install gotest.tools/gotestsum@latest
 
       - name: Run integration tests
-        run: gotestsum --format pkgname --junitfile integration-results.xml -- -tags integration ./integration/... -count=1 -timeout 30m
+        run: gotestsum --format pkgname --junitfile integration-results.xml -- -tags integration ./... -count=1 -timeout 30m
 
       - name: Integration test report
         uses: mikepenz/action-junit-report@v5

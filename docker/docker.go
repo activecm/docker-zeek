@@ -2,7 +2,6 @@ package docker
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -28,21 +27,15 @@ type ContainerState struct {
 
 // Inspect returns the state of the zeek container
 func Inspect() (*ContainerState, error) {
-	out, err := sudoDockerQuiet("inspect", "--format", `{"running":{{.State.Running}}}`, ContainerName)
+	out, err := sudoDockerQuiet("ps", "-a", "--filter", "name=^/"+ContainerName+"$", "--format", "{{.State}}")
 	if err != nil {
-		// docker inspect exits 1 when the container doesn't exist.
-		// this checks if the output mentions "No such object" to distinguish from real errors
-		if strings.Contains(out, "No such object") || strings.Contains(out, "No such container") {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("inspecting container: %w", err)
+		return nil, fmt.Errorf("checking container state: %w", err)
 	}
-
-	var state ContainerState
-	if err := json.Unmarshal([]byte(out), &state); err != nil {
-		return nil, fmt.Errorf("parsing container state: %w", err)
+	state := strings.TrimSpace(out)
+	if state == "" {
+		return nil, nil
 	}
-	return &state, nil
+	return &ContainerState{Running: state == "running"}, nil
 }
 
 // Pull pulls the given image
@@ -361,14 +354,12 @@ func findAndMountZeekScripts(dir, hostDir string) []string {
 	return args
 }
 
-// useSudo checks if the current user can write to the docker socket
+// useSudo checks if the current user can access docker without sudo
 var useSudo = sync.OnceValue(func() bool {
-	f, err := os.OpenFile("/var/run/docker.sock", os.O_WRONLY, 0)
-	if err != nil {
-		return true
-	}
-	_ = f.Close()
-	return false
+	cmd := exec.Command("docker", "info")
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
+	return cmd.Run() != nil
 })
 
 // sudoDockerQuiet runs a docker command without printing stderr to the terminal

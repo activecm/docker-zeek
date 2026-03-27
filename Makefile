@@ -39,7 +39,7 @@ test: build
 
 test-integration: build
 	@echo "→ Running integration tests (requires Docker)..."
-	@go test -tags integration -v -count=1 -timeout 30m ./integration/...
+	@go test -tags integration -v -count=1 -timeout 30m ./...
 	@echo "✔ Integration tests passed"
 
 lint:

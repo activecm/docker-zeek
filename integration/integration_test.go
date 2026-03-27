@@ -19,8 +19,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// integration tests require Docker and build the full Zeek image.
-// run with: go test -tags integration -v -timeout 30m ./integration/...
+// go test -tags integration -v -timeout 30m ./integration/...
 
 const testImage = "activecm/zeek:integration-test"
 

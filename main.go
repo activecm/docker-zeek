@@ -136,6 +136,9 @@ func start(image, hostDir string) error {
 	if err := docker.InitHostDir(image, hostDir); err != nil {
 		return err
 	}
+	if err := checkWriteAccess(filepath.Join(hostDir, "etc")); err != nil {
+		return err
+	}
 
 	nodeCfgPath := filepath.Join(hostDir, "etc", "node.cfg")
 	if err := ensureNodeCfg(nodeCfgPath); err != nil {
@@ -143,6 +146,22 @@ func start(image, hostDir string) error {
 	}
 
 	return docker.Start(image, hostDir)
+}
+
+// checkWriteAccess verifies the current user can write to a directory.
+// returns a clear error message suggesting sudo if permission is denied.
+func checkWriteAccess(dir string) error {
+	tmp := filepath.Join(dir, ".write-test")
+	f, err := os.Create(tmp)
+	if err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			return fmt.Errorf("cannot write to %s - run with sudo or ensure your user has write access", dir)
+		}
+		return err
+	}
+	_ = f.Close()
+	_ = os.Remove(tmp)
+	return nil
 }
 
 func ensureNodeCfg(path string) error {
@@ -191,6 +210,9 @@ func readpcap(cmd *cli.Command, image, hostDir string) error {
 	}
 
 	if err := os.MkdirAll(logDir, 0755); err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			return fmt.Errorf("cannot write to %s - run with sudo or ensure your user has write access", logDir)
+		}
 		return fmt.Errorf("creating log directory: %w", err)
 	}
 

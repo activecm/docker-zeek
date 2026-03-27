@@ -22,7 +22,7 @@ go.work.sum
 
 # executable
 /zeek
-/zeek-linux
+/zeek-linux*
 /.release_tmp
 zeek-linux-*.tar.gz
 zeek-image-offline-*.tar.gz

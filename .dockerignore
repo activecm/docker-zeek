@@ -1,0 +1,4 @@
+*
+!docker-entrypoint.sh
+!etc/
+!scripts/

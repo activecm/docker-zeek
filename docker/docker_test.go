@@ -11,24 +11,24 @@ import (
 
 func TestBuildRunArgs(t *testing.T) {
 	t.Run("Contains Required Docker Flags", func(t *testing.T) {
-		args := buildRunArgs("activecm/zeek:8.0.6", "/opt/zeek", "always")
+		args := buildRunArgs("activecm/zeek:8.0.6", "/opt/zeek", "unless-stopped")
 
 		require.Subset(t, args, []string{
 			"--detach", "--network", "host",
 			"--cap-add", "net_raw", "net_admin",
 			"--ulimit", "nofile=1048576:1048576",
-			"--restart", "always",
+			"--restart", "unless-stopped",
 			"--name", ContainerName,
 		})
 	})
 
 	t.Run("Image Is Last Arg", func(t *testing.T) {
-		args := buildRunArgs("activecm/zeek:8.0.6", "/opt/zeek", "always")
+		args := buildRunArgs("activecm/zeek:8.0.6", "/opt/zeek", "unless-stopped")
 		require.Equal(t, "activecm/zeek:8.0.6", args[len(args)-1])
 	})
 
 	t.Run("Contains Volume Mounts", func(t *testing.T) {
-		args := buildRunArgs("activecm/zeek:8.0.6", "/opt/zeek", "always")
+		args := buildRunArgs("activecm/zeek:8.0.6", "/opt/zeek", "unless-stopped")
 
 		require.Subset(t, args, []string{
 			"source=zeek-zkg-script,destination=/usr/local/zeek/share/zeek/site/packages/,type=volume",
@@ -38,7 +38,7 @@ func TestBuildRunArgs(t *testing.T) {
 	})
 
 	t.Run("Contains Bind Mounts", func(t *testing.T) {
-		args := buildRunArgs("activecm/zeek:8.0.6", "/opt/zeek", "always")
+		args := buildRunArgs("activecm/zeek:8.0.6", "/opt/zeek", "unless-stopped")
 
 		require.Subset(t, args, []string{
 			"source=/etc/localtime,destination=/etc/localtime,type=bind,readonly",

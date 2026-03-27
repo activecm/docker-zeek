@@ -1,6 +1,6 @@
 # docker-zeek
 
-Run a multi-process [Zeek](https://zeek.org/) cluster in Docker.
+Docker deployment and management tool for [Zeek](https://zeek.org/)
 
 [![Release](https://img.shields.io/github/v/release/activecm/docker-zeek)](https://github.com/activecm/docker-zeek/releases/latest)
 [![CI](https://github.com/activecm/docker-zeek/actions/workflows/ci.yml/badge.svg)](https://github.com/activecm/docker-zeek/actions/workflows/ci.yml)
@@ -11,7 +11,7 @@ Run a multi-process [Zeek](https://zeek.org/) cluster in Docker.
 
 The Docker image comes with:
 
-- Multi-process zeekctl cluster with AF_Packet
+- Zeekctl cluster with AF_Packet
 - Automatic process recovery if a worker crashes
 - [ja3](https://github.com/salesforce/ja3) and [ja4+](https://github.com/FoxIO-LLC/ja4) TLS fingerprinting
 - [zeek-open-connections](https://github.com/activecm/zeek-open-connections) for logging long-lived connections
@@ -40,8 +40,6 @@ zeek stop        Stop the Zeek container
 zeek restart     Restart the Zeek container
 zeek status      Show container and process status
 zeek update      Pull the latest image and restart
-zeek enable      Start Zeek on boot
-zeek disable     Stop Zeek from starting on boot
 zeek readpcap    Process a pcap file offline
 ```
 
@@ -55,7 +53,7 @@ Logs default to `/opt/zeek/manual-logs/`.
 
 ### Sensor Setup
 
-To re-run the interface selection wizard:
+To re-run the interface selection:
 
 ```bash
 sudo rm /opt/zeek/etc/node.cfg
@@ -105,7 +103,7 @@ export ZEEK_RELEASE=8.0.6
 ```bash
 make build              # build the CLI
 make test               # run unit tests
-make test-integration   # run integration tests (requires Docker)
+make test-integration   # run integration tests
 make lint               # run linter
 make docker-build       # build the Docker image
 make release            # build release artifacts

@@ -90,20 +90,6 @@ func main() {
 					return start(image, hostDir)
 				},
 			},
-			{
-				Name:  "enable",
-				Usage: "start Zeek on boot",
-				Action: func(_ context.Context, _ *cli.Command) error {
-					return setRestart("always")
-				},
-			},
-			{
-				Name:  "disable",
-				Usage: "stop Zeek from starting on boot",
-				Action: func(_ context.Context, _ *cli.Command) error {
-					return setRestart("no")
-				},
-			},
 		},
 		CommandNotFound: func(_ context.Context, _ *cli.Command, s string) {
 			fmt.Fprintf(os.Stderr, "unknown command: %s\n", s)
@@ -213,22 +199,4 @@ func readpcap(cmd *cli.Command, image, hostDir string) error {
 	}
 
 	return docker.ReadPCAP(image, hostDir, pcapPath, logDir)
-}
-
-func setRestart(policy string) error {
-	state, err := docker.Inspect()
-	if err != nil {
-		return err
-	}
-	if state == nil || !state.Running {
-		fmt.Fprintln(os.Stderr, "Zeek is stopped. Start it first to set the restart policy.")
-		return nil
-	}
-
-	if policy == "always" {
-		fmt.Fprintln(os.Stderr, "Enabling Zeek on future boots")
-	} else {
-		fmt.Fprintln(os.Stderr, "Disabling Zeek on future boots")
-	}
-	return docker.SetRestartPolicy(policy)
 }

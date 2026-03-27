@@ -21,15 +21,14 @@ const (
 
 var ErrInvalidPath = errors.New("invalid characters in path")
 
-// ContainerState holds the running state and restart policy of a container.
+// ContainerState holds the running state of the zeek container.
 type ContainerState struct {
-	Running       bool
-	RestartPolicy string
+	Running bool
 }
 
 // Inspect returns the state of the zeek container
 func Inspect() (*ContainerState, error) {
-	out, err := sudoDockerQuiet("inspect", "--format", `{"running":{{.State.Running}},"restart":"{{.HostConfig.RestartPolicy.Name}}"}`, ContainerName)
+	out, err := sudoDockerQuiet("inspect", "--format", `{"running":{{.State.Running}}}`, ContainerName)
 	if err != nil {
 		// docker inspect exits 1 when the container doesn't exist.
 		// this checks if the output mentions "No such object" to distinguish from real errors
@@ -86,7 +85,7 @@ func Start(image, hostDir string) error {
 		return err
 	}
 
-	args := buildRunArgs(image, hostDir, "always")
+	args := buildRunArgs(image, hostDir, "unless-stopped")
 	fmt.Fprintln(os.Stderr, "Starting the Zeek docker container")
 	_, err = sudoDocker(args...)
 	return err
@@ -99,13 +98,18 @@ func ReadPCAP(image, hostDir, pcapPath, logDir string) error {
 		return fmt.Errorf("resolving pcap path: %w", err)
 	}
 
+	absLogDir, err := filepath.Abs(logDir)
+	if err != nil {
+		return fmt.Errorf("resolving log directory: %w", err)
+	}
+
 	if err := createVolumes(); err != nil {
 		return err
 	}
 
-	args := buildReadPCAPArgs(image, hostDir, absPcap, logDir)
+	args := buildReadPCAPArgs(image, hostDir, absPcap, absLogDir)
 	fmt.Fprintln(os.Stderr, "Starting the Zeek docker container")
-	fmt.Fprintf(os.Stderr, "Zeek logs will be saved to %s\n", logDir)
+	fmt.Fprintf(os.Stderr, "Zeek logs will be saved to %s\n", absLogDir)
 	_, err = sudoDocker(args...)
 	return err
 }
@@ -130,12 +134,6 @@ func Status() error {
 	if err == nil && out != "" {
 		fmt.Println(out)
 	}
-	return err
-}
-
-// SetRestartPolicy updates the restart policy of the running container
-func SetRestartPolicy(policy string) error {
-	_, err := sudoDocker("update", "--restart", policy, ContainerName)
 	return err
 }
 

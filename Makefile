@@ -1,13 +1,16 @@
 # Makefile for docker-zeek
-include build.env
 
 BIN := zeek
 
+# set version
 VERSION ?= $(shell \
     git describe --tags --exact-match 2>/dev/null || \
     git describe --tags --dirty --always 2>/dev/null || \
     echo dev \
 )
+
+# set docker image tag
+IMAGE_TAG := $(patsubst v%,%,$(VERSION))
 
 # dev defaults for build/run
 GOOS   ?= $(shell go env GOOS)
@@ -15,7 +18,7 @@ GOARCH ?= $(shell go env GOARCH)
 
 # build flags
 CGO_ENABLED ?= 0
-LDFLAGS := -ldflags='-X main.Version=$(VERSION) -X main.DefaultRelease=$(ZEEK_VERSION)'
+LDFLAGS := -ldflags='-X main.Version=$(VERSION) -X main.ImageTag=$(IMAGE_TAG)'
 
 RELEASE_TMP := .release_tmp
 DOCKER_IMAGE := activecm/zeek
@@ -51,13 +54,13 @@ lint:
 # docker
 # ----------------------
 docker-build:
-	@echo "→ Building Docker image $(DOCKER_IMAGE):$(ZEEK_VERSION)..."
-	@docker build --build-arg ALPINE_VERSION=$(ALPINE_VERSION) --build-arg ZEEK_VERSION=$(ZEEK_VERSION) -t $(DOCKER_IMAGE):$(ZEEK_VERSION) .
+	@echo "→ Building Docker image $(DOCKER_IMAGE):$(IMAGE_TAG)..."
+	@docker build --build-arg VERSION=$(VERSION) -t $(DOCKER_IMAGE):$(IMAGE_TAG) .
 	@echo "✔ Docker image built"
 
 docker-save:
-	@echo "→ Saving Docker image $(DOCKER_IMAGE):$(ZEEK_VERSION)..."
-	@docker save $(DOCKER_IMAGE):$(ZEEK_VERSION) | gzip > zeek-image-offline-$(GOARCH).tar.gz
+	@echo "→ Saving Docker image $(DOCKER_IMAGE):$(IMAGE_TAG)..."
+	@docker save $(DOCKER_IMAGE):$(IMAGE_TAG) | gzip > zeek-image-offline-$(GOARCH).tar.gz
 	@echo "✔ Saved zeek-image-offline-$(GOARCH).tar.gz"
 
 # ----------------------
@@ -79,8 +82,7 @@ release-binaries: clean-release
 
 release-checksums:
 	@echo "→ Generating checksums..."
-	@shasum -a 256 zeek-linux-*.tar.gz zeek-image-offline-*.tar.gz 2>/dev/null > checksums.txt || \
-	  shasum -a 256 zeek-linux-*.tar.gz > checksums.txt
+	@shasum -a 256 zeek-linux-*.tar.gz > checksums.txt
 	@echo "✔ checksums.txt"
 
 verify-release:
@@ -109,7 +111,7 @@ verify-release:
 
 release: release-binaries verify-release release-checksums
 	@echo "✔ Release artifacts:"
-	@ls -1 zeek-linux-*.tar.gz zeek-image-offline-*.tar.gz checksums.txt 2>/dev/null
+	@ls -1 zeek-linux-*.tar.gz checksums.txt
 
 # ----------------------
 # clean

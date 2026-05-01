@@ -73,7 +73,8 @@ jobs:
         run: go install gotest.tools/gotestsum@latest
 
       - name: Run tests
-        run: gotestsum --format pkgname --junitfile unit-results.xml -- ./... -count=1 -timeout 600s
+        run: gotestsum --format pkgname --junitfile unit-results.xml -- ./... -count=1
+          -timeout 600s
 
       - name: Unit test report
         uses: mikepenz/action-junit-report@v5
@@ -83,4 +84,3 @@ jobs:
           update_check: true
           include_passed: true
           job_name: unit-tests
-

@@ -4,7 +4,7 @@ package integration
 
 import (
 	"bytes"
-	"encoding/binary"
+	_ "embed"
 	"io"
 	"os"
 	"os/exec"
@@ -23,13 +23,16 @@ import (
 
 const testImage = "activecm/zeek:integration-test"
 
-// buildZeekImage builds the Docker image from the repo Dockerfile.
+// minimalPCAP is a DNS-over-UDP capture from Zeek's test suite (github.com/zeek/zeek)
+//
+//go:embed testdata/dns_original_case.pcap
+var minimalPCAP []byte
+
+// buildZeekImage builds the Docker image from the repo Dockerfile
 func buildZeekImage(t *testing.T) {
 	t.Helper()
 
-	// these must match the values in build.env
-	alpineVersion := "3.21"
-	zeekVersion := "8.0.6"
+	version := "v0.0.0-integration-test"
 
 	req := testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
@@ -40,8 +43,7 @@ func buildZeekImage(t *testing.T) {
 				Tag:        "integration-test",
 				KeepImage:  true,
 				BuildArgs: map[string]*string{
-					"ALPINE_VERSION": &alpineVersion,
-					"ZEEK_VERSION":   &zeekVersion,
+					"VERSION": &version,
 				},
 			},
 		},
@@ -73,10 +75,9 @@ func TestZeekStarts(t *testing.T) {
 func TestReadPCAP(t *testing.T) {
 	ctx := t.Context()
 
-	pcapData := buildMinimalPCAP()
 	tmpDir := t.TempDir()
 	pcapPath := filepath.Join(tmpDir, "test.pcap")
-	require.NoError(t, os.WriteFile(pcapPath, pcapData, 0644))
+	require.NoError(t, os.WriteFile(pcapPath, minimalPCAP, 0644))
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
@@ -171,7 +172,7 @@ func TestLogOutput(t *testing.T) {
 func TestEntrypointValidation(t *testing.T) {
 	ctx := t.Context()
 
-	// start without node.cfg - entrypoint should fail
+	// start without node.cfg, entrypoint should fail
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:      testImage,
@@ -192,7 +193,7 @@ func TestHealthcheck(t *testing.T) {
 	container := startZeekContainer(t)
 	defer terminateContainer(t, container)
 
-	// wait for the healthcheck to pass (start-period is 30s, interval is 60s)
+	// wait for the healthcheck to pass
 	require.Eventually(t, func() bool {
 		state, err := container.State(ctx)
 		if err != nil {
@@ -205,8 +206,7 @@ func TestHealthcheck(t *testing.T) {
 func TestInitContainerOverridesEntrypoint(t *testing.T) {
 	ctx := t.Context()
 
-	// the init container must override the entrypoint to avoid
-	// the node.cfg check. this test verifies that --entrypoint sh works.
+	// the init container has to override the entrypoint to avoid the node.cfg check
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:      testImage,
@@ -229,6 +229,38 @@ func TestInitContainerOverridesEntrypoint(t *testing.T) {
 	_, err = io.Copy(buf, logs)
 	require.NoError(t, err)
 	require.Contains(t, buf.String(), "init-ok")
+}
+
+func TestBakedPackagesPresent(t *testing.T) {
+	ctx := t.Context()
+
+	// verify the baked in packages show up in zkg list
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:      testImage,
+			Entrypoint: []string{"sh"},
+			Cmd:        []string{"-c", "zkg list"},
+			WaitingFor: wait.ForExit().WithExitTimeout(30 * time.Second),
+		},
+		Started: true,
+	})
+	require.NoError(t, err, "failed to start container")
+	defer terminateContainer(t, container)
+
+	state, err := container.State(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 0, state.ExitCode, "zkg list should exit 0")
+
+	logs, err := container.Logs(ctx)
+	require.NoError(t, err)
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, logs)
+	require.NoError(t, err)
+	output := buf.String()
+
+	require.Contains(t, output, "ja3")
+	require.Contains(t, output, "ja4")
+	require.Contains(t, output, "zeek-open-connections")
 }
 
 // startZeekContainer starts a zeek container in standalone mode on loopback
@@ -267,8 +299,6 @@ interface=lo
 	return container
 }
 
-// helpers
-
 func terminateContainer(t *testing.T, container testcontainers.Container) {
 	t.Helper()
 	if err := container.Terminate(t.Context()); err != nil {
@@ -285,74 +315,3 @@ func execInContainer(t *testing.T, container testcontainers.Container, cmd ...st
 	require.NoError(t, err, "failed to read exec output")
 	return code, buf.String()
 }
-
-// buildMinimalPCAP creates a valid pcap file with a single TCP SYN packet.
-// this is enough for zeek to parse and produce a conn.log entry.
-func buildMinimalPCAP() []byte {
-	var buf bytes.Buffer
-	w := &binaryWriter{buf: &buf}
-
-	// pcap global header
-	w.u32le(0xa1b2c3d4) // magic
-	w.u16le(2)          // version major
-	w.u16le(4)          // version minor
-	w.i32le(0)          // thiszone
-	w.u32le(0)          // sigfigs
-	w.u32le(65535)      // snaplen
-	w.u32le(1)          // network (LINKTYPE_ETHERNET)
-
-	packet := buildTCPSYNPacket()
-
-	// pcap packet header
-	w.u32le(1000000)             // ts_sec
-	w.u32le(0)                   // ts_usec
-	w.u32le(uint32(len(packet))) // incl_len
-	w.u32le(uint32(len(packet))) // orig_len
-
-	buf.Write(packet) //nolint:revive // bytes.Buffer.Write never returns an error
-	return buf.Bytes()
-}
-
-func buildTCPSYNPacket() []byte {
-	var buf bytes.Buffer
-	w := &binaryWriter{buf: &buf}
-
-	// ethernet header (14 bytes)
-	buf.Write([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}) //nolint:revive // dst mac
-	buf.Write([]byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55}) //nolint:revive // src mac
-	w.u16be(0x0800)                                       // ethertype IPv4
-
-	// IPv4 header (20 bytes)
-	buf.Write([]byte{0x45, 0x00})  //nolint:revive // version + IHL, DSCP/ECN
-	w.u16be(40)                    // total length (20 IP + 20 TCP)
-	w.u16be(0x1234)                // identification
-	w.u16be(0x4000)                // flags + fragment offset
-	buf.Write([]byte{64, 6})       //nolint:revive // TTL, protocol TCP
-	w.u16be(0)                     // checksum (zeek doesn't care with -C)
-	buf.Write([]byte{10, 0, 0, 1}) //nolint:revive // src IP
-	buf.Write([]byte{10, 0, 0, 2}) //nolint:revive // dst IP
-
-	// TCP header (20 bytes)
-	w.u16be(12345)  // src port
-	w.u16be(80)     // dst port
-	w.u32be(1000)   // seq number
-	w.u32be(0)      // ack number
-	w.u16be(0x5002) // data offset (5) + SYN flag
-	w.u16be(65535)  // window
-	w.u16be(0)      // checksum
-	w.u16be(0)      // urgent pointer
-
-	return buf.Bytes()
-}
-
-// binaryWriter wraps binary.Write calls to avoid repetitive error checking.
-// bytes.Buffer writes never fail, so errors are intentionally ignored.
-type binaryWriter struct {
-	buf *bytes.Buffer
-}
-
-func (w *binaryWriter) u16le(v uint16) { binary.Write(w.buf, binary.LittleEndian, v) }
-func (w *binaryWriter) u32le(v uint32) { binary.Write(w.buf, binary.LittleEndian, v) }
-func (w *binaryWriter) i32le(v int32)  { binary.Write(w.buf, binary.LittleEndian, v) }
-func (w *binaryWriter) u16be(v uint16) { binary.Write(w.buf, binary.BigEndian, v) }
-func (w *binaryWriter) u32be(v uint32) { binary.Write(w.buf, binary.BigEndian, v) }

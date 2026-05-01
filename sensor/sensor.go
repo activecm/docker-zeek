@@ -6,139 +6,127 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
-	"text/template"
 )
 
-const nodeCfgTemplate = `[manager]
-type=manager
-host=localhost
-
-[proxy-1]
-type=proxy
-host=localhost
-
-[worker-1]
-type=worker
-host=localhost
-interface=af_packet::{{.Interface}}
-lb_method=custom
-lb_procs={{.Workers}}
-af_packet_fanout_id=23
-af_packet_fanout_mode=AF_Packet::FANOUT_HASH
-af_packet_buffer_size=128*1024*1024
-`
-
-type NodeConfig struct {
-	Interface string
-	Workers   int
+type InterfaceInfo struct {
+	Name string
+	Up   bool
+	IP   string
 }
 
-// ListInterfaces returns the names of all (non-loopback) network interfaces that are up on the host machine
-func ListInterfaces() ([]string, error) {
+// ListInterfaces returns all non-loopback network interfaces with their state and IP
+func ListInterfaces() ([]InterfaceInfo, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, fmt.Errorf("listing interfaces: %w", err)
 	}
-
-	var names []string
+	var result []InterfaceInfo
 	for _, iface := range ifaces {
 		if iface.Flags&net.FlagLoopback != 0 {
 			continue
 		}
-		if iface.Flags&net.FlagUp == 0 {
-			continue
+		info := InterfaceInfo{
+			Name: iface.Name,
+			Up:   iface.Flags&net.FlagUp != 0,
 		}
-		names = append(names, iface.Name)
+		var v6 string
+		addrs, _ := iface.Addrs()
+		for _, addr := range addrs {
+			ip, _, _ := net.ParseCIDR(addr.String())
+			if ip == nil {
+				continue
+			}
+			if ip.To4() != nil {
+				if info.IP == "" {
+					info.IP = ip.String()
+				}
+			} else if v6 == "" {
+				v6 = ip.String()
+			}
+		}
+		if info.IP == "" {
+			info.IP = v6
+		}
+		result = append(result, info)
 	}
-	return names, nil
+	return result, nil
 }
 
-// PromptForConfig interactively asks the user to select an interface and number of worker processes
-func PromptForConfig(reader *bufio.Reader) (*NodeConfig, error) {
+// InterfaceSelectionPrompt prompts the user to select capture interfaces
+func InterfaceSelectionPrompt(reader *bufio.Reader) ([]string, error) {
 	ifaces, err := ListInterfaces()
 	if err != nil {
 		return nil, err
 	}
 	if len(ifaces) == 0 {
-		return nil, errors.New("no suitable network interfaces found")
+		return nil, errors.New("no network interfaces found")
 	}
 
-	fmt.Fprintln(os.Stderr, "Available network interfaces:")
-	for i, name := range ifaces {
-		fmt.Fprintf(os.Stderr, "  %d) %s\n", i+1, name)
+	fmt.Fprintln(os.Stderr, "Available network interfaces (* = recommended):")
+	for i, iface := range ifaces {
+		marker := " "
+		if iface.IsRecommended() {
+			marker = "*"
+		}
+		state := "DOWN"
+		if iface.Up {
+			state = "UP"
+		}
+		fmt.Fprintf(os.Stderr, "  %s %d) %-12s %-4s %s\n", marker, i+1, iface.Name, state, iface.IP)
 	}
 
-	iface, err := promptSelection(reader, "Select an interface", len(ifaces))
+	selected, err := getUserSelections(reader, "Select interface(s) (e.g. 1,3)", len(ifaces))
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Fprint(os.Stderr, "Number of worker processes (0 for auto): ")
-	workersStr, err := reader.ReadString('\n')
-	if err != nil {
-		return nil, fmt.Errorf("reading worker count: %w", err)
+	names := make([]string, len(selected))
+	for i, n := range selected {
+		names[i] = ifaces[n-1].Name
 	}
-	workersStr = strings.TrimSpace(workersStr)
-
-	workers, err := strconv.Atoi(workersStr)
-	if err != nil || workers < 0 {
-		return nil, fmt.Errorf("invalid worker count: %s", workersStr)
-	}
-
-	if workers == 0 {
-		workers = AutoWorkerCount()
-	}
-
-	return &NodeConfig{
-		Interface: ifaces[iface-1],
-		Workers:   workers,
-	}, nil
+	return names, nil
 }
 
-// GenerateNodeCfg writes a node.cfg file
-func GenerateNodeCfg(cfg *NodeConfig, path string) error {
-	content, err := RenderNodeCfg(cfg)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, []byte(content), 0640)
-}
-
-// RenderNodeCfg returns the rendered node.cfg content as a string
-func RenderNodeCfg(cfg *NodeConfig) (string, error) {
-	tmpl, err := template.New("node.cfg").Parse(nodeCfgTemplate)
-	if err != nil {
-		return "", fmt.Errorf("parsing template: %w", err)
-	}
-
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, cfg); err != nil {
-		return "", fmt.Errorf("rendering template: %w", err)
-	}
-	return buf.String(), nil
-}
-
-// AutoWorkerCount returns CPUs minus 1 (minimum 1)
-func AutoWorkerCount() int {
-	return max(runtime.NumCPU()-1, 1)
-}
-
-func promptSelection(reader *bufio.Reader, prompt string, count int) (int, error) {
+func getUserSelections(reader *bufio.Reader, prompt string, count int) ([]int, error) {
 	for {
-		fmt.Fprintf(os.Stderr, "%s [1-%d]: ", prompt, count)
+		fmt.Fprintf(os.Stderr, "%s: ", prompt)
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			return 0, fmt.Errorf("reading input: %w", err)
+			return nil, fmt.Errorf("reading input: %w", err)
 		}
-		input = strings.TrimSpace(input)
-		n, err := strconv.Atoi(input)
-		if err != nil || n < 1 || n > count {
-			fmt.Fprintf(os.Stderr, "Please enter a number between 1 and %d.\n", count)
+		var nums []int
+		valid := true
+		for s := range strings.SplitSeq(strings.TrimSpace(input), ",") {
+			n, err := strconv.Atoi(strings.TrimSpace(s))
+			if err != nil || n < 1 || n > count {
+				fmt.Fprintf(os.Stderr, "Please pick numbers between 1 and %d.\n", count)
+				valid = false
+				break
+			}
+			nums = append(nums, n)
+		}
+		if !valid {
 			continue
 		}
-		return n, nil
+		if len(nums) == 0 {
+			fmt.Fprintln(os.Stderr, "Please select at least one.")
+			continue
+		}
+		return nums, nil
 	}
+}
+
+// IsRecommended checks whether this interface is a likely capture target
+func (i InterfaceInfo) IsRecommended() bool {
+	if !i.Up || i.IP != "" {
+		return false
+	}
+	for _, prefix := range []string{"br-", "veth", "virb", "docker", "wlan", "wlp", "wlx"} {
+		if strings.HasPrefix(i.Name, prefix) {
+			return false
+		}
+	}
+	return true
 }

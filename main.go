@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/activecm/docker-zeek/docker"
 	"github.com/activecm/docker-zeek/sensor"
@@ -15,19 +16,15 @@ import (
 
 const defaultHostDir = "/opt/zeek"
 
-// Version is populated by build flags or defaults to "dev"
+// Version is the docker-zeek version
 var Version string
 
-// DefaultRelease is the Docker image tag this CLI was built for.
-// populated at build time via -ldflags: from build.env locally, from the git tag in CI.
-// falls back to "latest" when unset (e.g. "go run .")
-var DefaultRelease string
+// ImageTag is the docker image tag
+var ImageTag string
+
+var ErrNotBuilt = errors.New("docker-zeek not built properly: run `make build`")
 
 func main() {
-	if Version == "" {
-		Version = "dev"
-	}
-
 	app := &cli.Command{
 		Name:    "zeek",
 		Usage:   "manage a Zeek Docker container",
@@ -37,7 +34,10 @@ func main() {
 				Name:  "start",
 				Usage: "start the Zeek container",
 				Action: func(_ context.Context, _ *cli.Command) error {
-					image, hostDir := resolveConfig()
+					image, hostDir, err := resolveConfig()
+					if err != nil {
+						return err
+					}
 					return start(image, hostDir)
 				},
 			},
@@ -52,7 +52,10 @@ func main() {
 				Name:  "restart",
 				Usage: "restart the Zeek container",
 				Action: func(_ context.Context, _ *cli.Command) error {
-					image, hostDir := resolveConfig()
+					image, hostDir, err := resolveConfig()
+					if err != nil {
+						return err
+					}
 					if err := docker.Stop(); err != nil {
 						return err
 					}
@@ -71,23 +74,11 @@ func main() {
 				Usage:     "process a pcap file with Zeek",
 				ArgsUsage: "<pcap-file> [output-dir]",
 				Action: func(_ context.Context, cmd *cli.Command) error {
-					image, hostDir := resolveConfig()
+					image, hostDir, err := resolveConfig()
+					if err != nil {
+						return err
+					}
 					return readpcap(cmd, image, hostDir)
-				},
-			},
-			{
-				Name:  "update",
-				Usage: "pull the latest image and restart",
-				Action: func(_ context.Context, _ *cli.Command) error {
-					image, hostDir := resolveConfig()
-					fmt.Fprintln(os.Stderr, "Pulling latest Zeek image")
-					if err := docker.Pull(image); err != nil {
-						return err
-					}
-					if err := docker.Stop(); err != nil {
-						return err
-					}
-					return start(image, hostDir)
 				},
 			},
 		},
@@ -102,54 +93,75 @@ func main() {
 	}
 }
 
-// envWithFallback checks the environment for an uppercase variable first then checks lowercase for backwards compatibility
-// with the legacy version which used lowercase.
-func envWithFallback(upper, lower string) string {
-	if v := os.Getenv(upper); v != "" {
-		return v
+func resolveConfig() (string, string, error) {
+	if Version == "" || ImageTag == "" {
+		return "", "", ErrNotBuilt
 	}
-	return os.Getenv(lower)
-}
-
-func resolveConfig() (string, string) {
-	hostDir := envWithFallback("ZEEK_TOP_DIR", "zeek_top_dir")
+	hostDir := os.Getenv("ZEEK_TOP_DIR")
+	if hostDir == "" {
+		hostDir = os.Getenv("zeek_top_dir")
+	}
 	if hostDir == "" {
 		hostDir = defaultHostDir
 	}
-
-	release := envWithFallback("ZEEK_RELEASE", "zeek_release")
-	if release == "" {
-		if DefaultRelease != "" {
-			release = DefaultRelease
-		} else {
-			release = "latest"
-		}
-	}
-	image := docker.DefaultImage + ":" + release
-	return image, hostDir
+	image := docker.DefaultImage + ":" + ImageTag
+	return image, hostDir, nil
 }
 
 func start(image, hostDir string) error {
+	// exit if zeek is already running before doing any setup
+	state, err := docker.Inspect()
+	if err != nil {
+		return err
+	}
+	if state != nil && state.Running {
+		if state.Image != image {
+			return fmt.Errorf("zeek is running on %s, not %s. Run 'zeek stop' to remove it, then 'zeek start' to launch this version", state.Image, image)
+		}
+		fmt.Fprintln(os.Stderr, "Zeek is already running.")
+		return nil
+	}
+
 	if err := docker.ValidatePath(hostDir); err != nil {
 		return err
 	}
-	if err := docker.InitHostDir(image, hostDir); err != nil {
+	if err := docker.InitHostDir(image, hostDir, Version); err != nil {
 		return err
 	}
 	if err := checkWriteAccess(filepath.Join(hostDir, "etc")); err != nil {
 		return err
 	}
 
-	nodeCfgPath := filepath.Join(hostDir, "etc", "node.cfg")
-	if err := ensureNodeCfg(nodeCfgPath); err != nil {
-		return err
+	envPath := filepath.Join(hostDir, "etc", "zeek.env")
+	envVars, err := readZeekEnv(envPath)
+	if err != nil {
+		return fmt.Errorf("reading zeek.env: %w", err)
 	}
 
-	return docker.Start(image, hostDir)
+	nodeCfgPath := filepath.Join(hostDir, "etc", "node.cfg")
+	_, nodeCfgErr := os.Stat(nodeCfgPath)
+	nodeCfgExists := nodeCfgErr == nil
+
+	// run sensor setup if no mounted node.cfg and no ZEEK_INTERFACE in zeek.env
+	if !nodeCfgExists && envVars["ZEEK_INTERFACE"] == "" {
+		fmt.Fprintln(os.Stderr, "Starting sensor setup.")
+		reader := bufio.NewReader(os.Stdin)
+		names, err := sensor.InterfaceSelectionPrompt(reader)
+		if err != nil {
+			return fmt.Errorf("sensor setup: %w", err)
+		}
+		envVars["ZEEK_INTERFACE"] = strings.Join(names, ",")
+		if err := writeZeekEnv(envPath, envVars); err != nil {
+			return fmt.Errorf("writing zeek.env: %w", err)
+		}
+	}
+
+	docker.WarnLegacyVolumes()
+
+	return docker.Start(image, hostDir, envVars)
 }
 
-// checkWriteAccess verifies the current user can write to a directory.
-// returns a clear error message suggesting sudo if permission is denied.
+// checkWriteAccess verifies write access to a directory by creating a probe file
 func checkWriteAccess(dir string) error {
 	tmp := filepath.Join(dir, ".write-test")
 	f, err := os.Create(tmp)
@@ -159,25 +171,43 @@ func checkWriteAccess(dir string) error {
 		}
 		return err
 	}
-	_ = f.Close()
-	_ = os.Remove(tmp)
+	f.Close()
+	os.Remove(tmp)
 	return nil
 }
 
-func ensureNodeCfg(path string) error {
-	info, err := os.Stat(path)
-	if err == nil && info.Size() > 0 {
-		return nil
-	}
-
-	fmt.Fprintln(os.Stderr, "No node.cfg found. Starting sensor setup.")
-	reader := bufio.NewReader(os.Stdin)
-	cfg, err := sensor.PromptForConfig(reader)
+// readZeekEnv parses a zeek.env file and returns its key-value pairs
+func readZeekEnv(path string) (map[string]string, error) {
+	f, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("sensor setup: %w", err)
+		if os.IsNotExist(err) {
+			return map[string]string{}, nil
+		}
+		return nil, err
 	}
+	defer f.Close()
 
-	return sensor.GenerateNodeCfg(cfg, path)
+	vals := map[string]string{}
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if k, v, ok := strings.Cut(line, "="); ok {
+			vals[strings.TrimSpace(k)] = strings.TrimSpace(v)
+		}
+	}
+	return vals, scanner.Err()
+}
+
+// writeZeekEnv writes the given key-value pairs to a zeek.env file
+func writeZeekEnv(path string, vals map[string]string) error {
+	var b strings.Builder
+	for k, v := range vals {
+		fmt.Fprintf(&b, "%s=%s\n", k, v)
+	}
+	return os.WriteFile(path, []byte(b.String()), 0644)
 }
 
 func readpcap(cmd *cli.Command, image, hostDir string) error {
@@ -186,7 +216,12 @@ func readpcap(cmd *cli.Command, image, hostDir string) error {
 		return errors.New("readpcap requires a pcap file path")
 	}
 
-	pcapPath := args.Get(0)
+	// resolve relative CLI paths before validating
+	pcapPath, err := filepath.Abs(args.Get(0))
+	if err != nil {
+		return fmt.Errorf("resolving pcap path: %w", err)
+	}
+
 	info, err := os.Stat(pcapPath)
 	if err != nil {
 		return fmt.Errorf("pcap file: %w", err)
@@ -203,7 +238,10 @@ func readpcap(cmd *cli.Command, image, hostDir string) error {
 
 	logDir := filepath.Join(hostDir, "manual-logs")
 	if args.Len() >= 2 {
-		logDir = args.Get(1)
+		logDir, err = filepath.Abs(args.Get(1))
+		if err != nil {
+			return fmt.Errorf("resolving log directory: %w", err)
+		}
 		if err := docker.ValidatePath(logDir); err != nil {
 			return err
 		}
@@ -216,7 +254,7 @@ func readpcap(cmd *cli.Command, image, hostDir string) error {
 		return fmt.Errorf("creating log directory: %w", err)
 	}
 
-	if err := docker.InitHostDir(image, hostDir); err != nil {
+	if err := docker.InitHostDir(image, hostDir, Version); err != nil {
 		return err
 	}
 

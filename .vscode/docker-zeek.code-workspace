@@ -33,6 +33,22 @@
             },
         ],
 
+        // === Go  ===
+        "go.testFlags": [ "-v", "-count=1" ],
+        "go.vetOnSave": "off",
+        "go.lintTool": "golangci-lint-v2",
+        "go.lintFlags": [
+            "--config=${workspaceFolder}/.golangci.yml"
+        ],
+        "gopls": {
+            "ui.semanticTokens": true,
+            "build.buildFlags": [ "-tags=integration" ],
+        },
+        "[go]": {
+            "editor.defaultFormatter": "golang.go",
+            "editor.formatOnSave": true
+        },
+
         // === Markdown ===
         "[markdown]": {
             "editor.tabSize": 2,

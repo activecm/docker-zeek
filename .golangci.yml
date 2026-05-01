@@ -142,6 +142,8 @@ linters:
         - fmt.Print.*
         - fmt.Errorf
         - encoding/binary.Write
+        - (*os.File).Close
+        - os.Remove
         # - io/ioutil.ReadFile
         # - io.Copy(*bytes.Buffer)
         # - io.Copy(os.Stdout)
@@ -465,6 +467,7 @@ linters:
             - ^fmt.Println
             - ^io.Closer.Close
             - ^os.File.Close
+            - ^os.Remove
         # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#unused-receiver
         - name: unused-receiver
           # severity: warning

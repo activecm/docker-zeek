@@ -2,114 +2,93 @@ package sensor
 
 import (
 	"bufio"
-	"os"
-	"path/filepath"
+	"io"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestRenderNodeCfg(t *testing.T) {
-	t.Run("Basic Config", func(t *testing.T) {
-		cfg := &NodeConfig{Interface: "eth0", Workers: 4}
-		result, err := RenderNodeCfg(cfg)
-		require.NoError(t, err)
-		require.Contains(t, result, "af_packet::eth0")
-		require.Contains(t, result, "lb_procs=4")
-	})
-
-	t.Run("Contains All Sections", func(t *testing.T) {
-		cfg := &NodeConfig{Interface: "eth0", Workers: 2}
-		result, err := RenderNodeCfg(cfg)
-		require.NoError(t, err)
-		for _, section := range []string{"[manager]", "[proxy-1]", "[worker-1]"} {
-			require.Contains(t, result, section)
-		}
-	})
-
-	t.Run("Single Worker", func(t *testing.T) {
-		cfg := &NodeConfig{Interface: "ens192", Workers: 1}
-		result, err := RenderNodeCfg(cfg)
-		require.NoError(t, err)
-		require.Contains(t, result, "af_packet::ens192")
-		require.Contains(t, result, "lb_procs=1")
-	})
-
-	t.Run("Contains AF Packet Settings", func(t *testing.T) {
-		cfg := &NodeConfig{Interface: "eth0", Workers: 2}
-		result, err := RenderNodeCfg(cfg)
-		require.NoError(t, err)
-		for _, s := range []string{
-			"af_packet_fanout_id=23",
-			"af_packet_fanout_mode=AF_Packet::FANOUT_HASH",
-			"af_packet_buffer_size=128*1024*1024",
-		} {
-			require.Contains(t, result, s)
-		}
-	})
-}
-
-func TestGenerateNodeCfg(t *testing.T) {
-	t.Run("Writes File", func(t *testing.T) {
-		dir := t.TempDir()
-		path := filepath.Join(dir, "node.cfg")
-
-		cfg := &NodeConfig{Interface: "eth0", Workers: 4}
-		require.NoError(t, GenerateNodeCfg(cfg, path))
-
-		content, err := os.ReadFile(path)
-		require.NoError(t, err)
-		require.Contains(t, string(content), "af_packet::eth0")
-	})
-
-	t.Run("File Permissions", func(t *testing.T) {
-		dir := t.TempDir()
-		path := filepath.Join(dir, "node.cfg")
-
-		cfg := &NodeConfig{Interface: "eth0", Workers: 2}
-		require.NoError(t, GenerateNodeCfg(cfg, path))
-
-		info, err := os.Stat(path)
-		require.NoError(t, err)
-		require.Equal(t, os.FileMode(0640), info.Mode().Perm())
-	})
-}
-
 func TestListInterfaces(t *testing.T) {
 	t.Run("Excludes Loopback", func(t *testing.T) {
 		ifaces, err := ListInterfaces()
 		require.NoError(t, err)
-		require.NotContains(t, ifaces, "lo")
+		for _, i := range ifaces {
+			require.NotEqual(t, "lo", i.Name)
+		}
 	})
 }
 
-func TestPromptSelection(t *testing.T) {
-	t.Run("Valid Selection", func(t *testing.T) {
-		reader := bufio.NewReader(strings.NewReader("2\n"))
-		result, err := promptSelection(reader, "Pick one", 3)
-		require.NoError(t, err)
-		require.Equal(t, 2, result)
+func TestIsRecommended(t *testing.T) {
+	t.Run("Recommends Up", func(t *testing.T) {
+		i := InterfaceInfo{Name: "eth1", Up: true}
+		require.True(t, i.IsRecommended())
 	})
 
-	t.Run("Rejects Zero", func(t *testing.T) {
-		reader := bufio.NewReader(strings.NewReader("0\n1\n"))
-		result, err := promptSelection(reader, "Pick one", 3)
-		require.NoError(t, err)
-		require.Equal(t, 1, result)
+	t.Run("Excludes Down", func(t *testing.T) {
+		i := InterfaceInfo{Name: "eth1", Up: false}
+		require.False(t, i.IsRecommended())
 	})
 
-	t.Run("Rejects Out Of Range", func(t *testing.T) {
-		reader := bufio.NewReader(strings.NewReader("5\n2\n"))
-		result, err := promptSelection(reader, "Pick one", 3)
-		require.NoError(t, err)
-		require.Equal(t, 2, result)
+	t.Run("Excludes Has IP", func(t *testing.T) {
+		i := InterfaceInfo{Name: "eth0", Up: true, IP: "192.168.1.1"}
+		require.False(t, i.IsRecommended())
 	})
 
-	t.Run("Rejects Non Numeric", func(t *testing.T) {
-		reader := bufio.NewReader(strings.NewReader("abc\n1\n"))
-		result, err := promptSelection(reader, "Pick one", 3)
+	t.Run("Excludes Virtual Prefixes", func(t *testing.T) {
+		for _, name := range []string{"br-abc", "veth123", "virbr0", "docker0", "wlan0", "wlp1s0", "wlx00"} {
+			i := InterfaceInfo{Name: name, Up: true}
+			require.False(t, i.IsRecommended(), "expected %s to not be recommended", name)
+		}
+	})
+}
+
+func TestPromptMultiSelection(t *testing.T) {
+	t.Run("Single Number", func(t *testing.T) {
+		r := bufio.NewReader(strings.NewReader("2\n"))
+		nums, err := getUserSelections(r, "pick", 5)
 		require.NoError(t, err)
-		require.Equal(t, 1, result)
+		require.Equal(t, []int{2}, nums)
+	})
+
+	t.Run("Multiple Comma Separated", func(t *testing.T) {
+		r := bufio.NewReader(strings.NewReader("1,3,5\n"))
+		nums, err := getUserSelections(r, "pick", 5)
+		require.NoError(t, err)
+		require.Equal(t, []int{1, 3, 5}, nums)
+	})
+
+	t.Run("Trims Whitespace", func(t *testing.T) {
+		r := bufio.NewReader(strings.NewReader("  1 , 3 \n"))
+		nums, err := getUserSelections(r, "pick", 5)
+		require.NoError(t, err)
+		require.Equal(t, []int{1, 3}, nums)
+	})
+
+	t.Run("Out Of Range", func(t *testing.T) {
+		r := bufio.NewReader(strings.NewReader("0\n6\n2\n"))
+		nums, err := getUserSelections(r, "pick", 5)
+		require.NoError(t, err)
+		require.Equal(t, []int{2}, nums)
+	})
+
+	t.Run("Non-Numeric", func(t *testing.T) {
+		r := bufio.NewReader(strings.NewReader("foo\n2\n"))
+		nums, err := getUserSelections(r, "pick", 5)
+		require.NoError(t, err)
+		require.Equal(t, []int{2}, nums)
+	})
+
+	t.Run("Empty Line", func(t *testing.T) {
+		r := bufio.NewReader(strings.NewReader("\n2\n"))
+		nums, err := getUserSelections(r, "pick", 5)
+		require.NoError(t, err)
+		require.Equal(t, []int{2}, nums)
+	})
+
+	t.Run("Empty Reader", func(t *testing.T) {
+		r := bufio.NewReader(strings.NewReader(""))
+		_, err := getUserSelections(r, "pick", 5)
+		require.ErrorIs(t, err, io.EOF)
 	})
 }

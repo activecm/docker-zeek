@@ -13,6 +13,8 @@ import (
 
 // go test -tags integration -v -count=1 ./docker/...
 
+const testImage = "alpine:3.21"
+
 func cleanupContainer(t *testing.T) {
 	t.Helper()
 	_ = exec.Command("docker", "rm", "--force", ContainerName).Run()
@@ -31,20 +33,21 @@ func TestInspectRunningContainer(t *testing.T) {
 	cleanupContainer(t)
 	defer cleanupContainer(t)
 
-	cmd := exec.Command("docker", "run", "--detach", "--name", ContainerName, "alpine:latest", "sleep", "30")
+	cmd := exec.Command("docker", "run", "--detach", "--name", ContainerName, testImage, "sleep", "30")
 	require.NoError(t, cmd.Run(), "failed to start test container")
 
 	state, err := Inspect()
 	require.NoError(t, err)
 	require.NotNil(t, state)
 	require.True(t, state.Running)
+	require.Equal(t, testImage, state.Image)
 }
 
 func TestInspectStoppedContainer(t *testing.T) {
 	cleanupContainer(t)
 	defer cleanupContainer(t)
 
-	cmd := exec.Command("docker", "run", "--detach", "--name", ContainerName, "alpine:latest", "sleep", "30")
+	cmd := exec.Command("docker", "run", "--detach", "--name", ContainerName, testImage, "sleep", "30")
 	require.NoError(t, cmd.Run(), "failed to start test container")
 
 	cmd = exec.Command("docker", "stop", "-t", "1", ContainerName)
@@ -61,7 +64,7 @@ func TestInspectIgnoresSimilarNames(t *testing.T) {
 	defer cleanupContainer(t)
 	defer func() { _ = exec.Command("docker", "rm", "--force", "zeek-other").Run() }()
 
-	cmd := exec.Command("docker", "run", "--detach", "--name", "zeek-other", "alpine:latest", "sleep", "30")
+	cmd := exec.Command("docker", "run", "--detach", "--name", "zeek-other", testImage, "sleep", "30")
 	require.NoError(t, cmd.Run(), "failed to start decoy container")
 
 	state, err := Inspect()
@@ -92,7 +95,7 @@ func TestInitHostDirCreatesDirectories(t *testing.T) {
 	_ = os.RemoveAll(hostDir)
 	defer func() { _ = os.RemoveAll(hostDir) }()
 
-	err := InitHostDir("activecm/zeek:integration-test", hostDir)
+	err := InitHostDir("activecm/zeek:integration-test", hostDir, "v8.0.6")
 	require.NoError(t, err)
 
 	for _, dir := range []string{"etc", "logs", "spool", "manual-logs", "share/zeek/site/autoload"} {
@@ -101,7 +104,7 @@ func TestInitHostDirCreatesDirectories(t *testing.T) {
 	}
 }
 
-func TestInitHostDirSkipsExistingConfigs(t *testing.T) {
+func TestInitHostDirPreservesNetworksCfg(t *testing.T) {
 	cleanupContainer(t)
 	defer cleanupContainer(t)
 
@@ -109,13 +112,13 @@ func TestInitHostDirSkipsExistingConfigs(t *testing.T) {
 	_ = os.RemoveAll(hostDir)
 	defer func() { _ = os.RemoveAll(hostDir) }()
 
-	err := InitHostDir("activecm/zeek:integration-test", hostDir)
+	err := InitHostDir("activecm/zeek:integration-test", hostDir, "v8.0.6")
 	require.NoError(t, err)
 
 	cfgPath := filepath.Join(hostDir, "etc", "networks.cfg")
 	require.NoError(t, os.WriteFile(cfgPath, []byte("custom content"), 0644))
 
-	err = InitHostDir("activecm/zeek:integration-test", hostDir)
+	err = InitHostDir("activecm/zeek:integration-test", hostDir, "v8.0.6")
 	require.NoError(t, err)
 
 	content, err := os.ReadFile(cfgPath)

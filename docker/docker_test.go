@@ -17,7 +17,6 @@ func TestBuildRunArgs(t *testing.T) {
 		require.Subset(t, args, []string{
 			"--detach", "--network", "host",
 			"--cap-add", "net_raw", "net_admin",
-			"--ulimit", "nofile=1048576:1048576",
 			"--restart", "unless-stopped",
 			"--name", ContainerName,
 		})

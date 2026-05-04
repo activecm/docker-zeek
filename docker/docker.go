@@ -158,7 +158,6 @@ func InitHostDir(image, hostDir, version string) error {
 	// override the entrypoint since it expects node.cfg, which doesn't exist yet
 	_, err := dockerCmd(false,
 		"run", "--detach",
-		"--ulimit", "nofile=1048576:1048576",
 		"--name", container,
 		"-v", hostDir+":/zeek",
 		"--network", "none",
@@ -349,7 +348,6 @@ func archiveLocalZeek(hostDir string) error {
 func buildRunArgs(image, hostDir, restart string, envVars map[string]string) []string {
 	args := []string{
 		"run", "--detach",
-		"--ulimit", "nofile=1048576:1048576",
 		"--name", ContainerName,
 		"--restart", restart,
 		"--cap-add", "net_raw",
@@ -382,7 +380,6 @@ func buildRunArgs(image, hostDir, restart string, envVars map[string]string) []s
 func buildReadPCAPArgs(image, hostDir, pcapPath, logDir string) []string {
 	args := []string{
 		"run", "--rm",
-		"--ulimit", "nofile=1048576:1048576",
 		"--workdir", "/usr/local/zeek/logs/",
 	}
 

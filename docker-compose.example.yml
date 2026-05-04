@@ -1,0 +1,15 @@
+services:
+  zeek:
+    image: activecm/zeek:8.0.6
+    container_name: zeek
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    environment:
+      ZEEK_INTERFACE: eth0
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /opt/zeek/logs:/usr/local/zeek/logs
+      - /opt/zeek/spool:/usr/local/zeek/spool

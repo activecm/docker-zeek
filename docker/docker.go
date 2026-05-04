@@ -21,7 +21,6 @@ const (
 
 var ErrInvalidPath = errors.New("invalid path")
 
-// ContainerState holds the running state of the zeek container
 type ContainerState struct {
 	Running bool
 	Image   string
@@ -36,16 +35,10 @@ func WarnLegacyVolumes() {
 			present = append(present, v)
 		}
 	}
-	if len(present) == 0 {
-		return
+	if len(present) > 0 {
+		fmt.Fprintln(os.Stderr, "Unused docker-zeek volumes from a previous version are still present. They can be safely removed at your convenience. For cleanup instructions, see:")
+		fmt.Fprintln(os.Stderr, "  https://github.com/activecm/docker-zeek#migrating-from-older-versions")
 	}
-	fmt.Fprintln(os.Stderr, "warning: legacy zkg volumes from a previous version are still present:")
-	for _, v := range present {
-		fmt.Fprintf(os.Stderr, "  %s\n", v)
-	}
-	fmt.Fprintf(os.Stderr, "To remove them:\n  docker volume rm %s\n", strings.Join(present, " "))
-	fmt.Fprintln(os.Stderr, "If you had custom Zeek packages installed, see:")
-	fmt.Fprintln(os.Stderr, "  https://github.com/activecm/docker-zeek#migrating-from-older-versions")
 }
 
 // Inspect returns the state of the zeek container
@@ -288,10 +281,10 @@ func handleUserEditable(container, hostDir, currentVersion, relPath, containerPa
 			if err := os.Rename(hostPath, hostPath+".bak"); err != nil {
 				return fmt.Errorf("renaming legacy %s: %w", relPath, err)
 			}
-			message = fmt.Sprintf("Renamed legacy %s to %s.bak. Review and copy any settings to the new file.", relPath, relPath)
+			message = fmt.Sprintf("Renamed legacy %s to %s.bak. Review and copy any settings to the new file.", hostPath, hostPath)
 		default: // version mismatch: install as .new, leave live alone
 			dest = "/zeek/" + relPath + ".new"
-			message = fmt.Sprintf("Updated defaults at %s.new. Please review and merge into %s, then restart zeek.", relPath, relPath)
+			message = fmt.Sprintf("Updated defaults at %s.new. Please review and merge into %s, then restart zeek.", hostPath, hostPath)
 		}
 	}
 

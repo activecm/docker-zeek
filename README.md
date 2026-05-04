@@ -82,15 +82,13 @@ Compiled-plugin packages (those with C++ code) can't be installed at runtime bec
 
 #### Migrating from older versions
 
-In v6 and earlier, the `zeek-zkg-script`, `zeek-zkg-plugin`, and `zeek-zkg-state` volumes held packages installed at runtime via `zkg`. v8 doesn't use those volumes.
-
-The image already includes `ja3`, `ja4`, and `zeek-open-connections`. If you installed any other packages with `zkg install`, follow the custom image steps above to recreate them.
-
-Then remove the old volumes:
+In older versions of docker-zeek (v6 and prior), Zeek packages were managed using docker volumes. In v8, these volumes are unused and do not affect anything in your running container. They are safe to leave in place, but we advise cleaning them up with:
 
 ```bash
 sudo docker volume rm zeek-zkg-script zeek-zkg-plugin zeek-zkg-state
 ```
+
+If you previously added your own Zeek packages and want to keep using them in v8, see the custom image steps above for how to rebuild them.
 
 ### Custom Zeek Scripts
 

@@ -72,14 +72,14 @@ sudo docker exec zeek zeekctl deploy
 ```
 
 > [!NOTE]
-> Runtime installs are ephemeral — they don't survive `zeek restart` or `zeek stop`. Compiled-plugin packages (those with C++ code) also can't be installed this way because the final image doesn't include a compiler.
+> Runtime installs are ephemeral. They don't survive `zeek restart` or `zeek stop`. Compiled-plugin packages (those with C++ code) also can't be installed this way because the final image doesn't include a compiler.
 
 To keep a package permanently, build your own image on top of `activecm/zeek`. Create a `Dockerfile`:
 
 ```dockerfile
 FROM activecm/zeek:8.0.6
 
-RUN zkg refresh && zkg install --force <package>
+RUN zkg refresh && zkg install --force --skiptests <package>
 ```
 
 Build it:
@@ -88,7 +88,7 @@ Build it:
 sudo docker build -t my-zeek .
 ```
 
-The `zeek` CLI always launches the upstream `activecm/zeek` image, so to use your custom build you'll need to run it directly with `docker` — see [Running without the CLI](#running-without-the-cli).
+The `zeek` CLI always launches the upstream `activecm/zeek` image, so to use your custom build you'll need to run it directly with `docker`. See [Running without the CLI](#running-without-the-cli).
 
 > [!NOTE]
 > Packages with compiled plugins need build tools, which aren't in the base image. Install them (e.g. `RUN apk add --no-cache g++ make cmake bsd-compat-headers libpcap-dev openssl-dev zlib-dev`) before the `zkg install` step, plus any package-specific dependencies.
@@ -105,7 +105,7 @@ sudo docker run --rm -v zeek-zkg-script:/check alpine ls /check
 
 The v6 defaults are `bro-interface-setup`, `bro-doctor`, `ja3`, and `zeek-open-connections`. Anything else is a package you added.
 
-- To keep using a custom package, bake it into your own image — see [Adding Custom Packages](#adding-custom-packages).
+- To keep using a custom package, bake it into your own image. See [Adding Custom Packages](#adding-custom-packages).
 - Otherwise, remove the unused volumes:
 
 ```bash

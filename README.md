@@ -114,7 +114,15 @@ sudo docker volume rm zeek-zkg-script zeek-zkg-plugin zeek-zkg-state
 
 ### Custom Zeek Scripts
 
-Add custom scripts as `.zeek` files in `/opt/zeek/share/zeek/site/autoload/`. The container loads everything in that directory on each start. Use any filename other than `local.zeek`, which is regenerated automatically.
+Add custom scripts as `.zeek` files in `/opt/zeek/share/zeek/site/autoload/`. The container loads everything in that directory on each start, in filename order, so files are prefixed with a number to control load order.
+
+The directory ships with three files we manage:
+
+- `100-default.zeek` - default policy, safe to edit
+- `200-inactivity_timeout.zeek` - regenerated on each start, do not edit
+- `900-zkg.zeek` - regenerated on each start, do not edit
+
+Pick a filename that does not collide with these. A number between `200` and `900` keeps your script loading after the defaults:
 
 ```bash
 sudo cp custom.zeek /opt/zeek/share/zeek/site/autoload/210-custom.zeek

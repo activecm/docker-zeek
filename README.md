@@ -64,11 +64,7 @@ sudo zeek start
 
 ### Adding Custom Packages
 
-The image comes with `ja3`, `ja4`, and `zeek-open-connections`. There are two ways to add more.
-
-For permanent additions, build a custom image that includes the package.
-
-For trying a script-only package at runtime, you can install it directly in the running container with `zkg install`:
+The image includes `ja3`, `ja4`, and `zeek-open-connections`, which other Active Countermeasures tools depend on. To try out additional packages, install them directly in the running container with `zkg`:
 
 ```bash
 sudo docker exec zeek zkg install --skiptests <package>
@@ -76,19 +72,45 @@ sudo docker exec zeek zeekctl deploy
 ```
 
 > [!NOTE]
-> Runtime installs are ephemeral. They don't survive `zeek restart` or `zeek stop`. Use a custom image to keep packages permanently.
+> Runtime installs are ephemeral. They don't survive `zeek restart` or `zeek stop`. Compiled-plugin packages (those with C++ code) also can't be installed this way because the final image doesn't include a compiler.
 
-Compiled-plugin packages (those with C++ code) can't be installed at runtime because the final image doesn't include a compiler, so `zkg install` fails. Use a custom image instead.
+To keep a package permanently, build your own image on top of `activecm/zeek`. Create a `Dockerfile`:
+
+```dockerfile
+FROM activecm/zeek:8.0.6
+
+RUN zkg refresh && zkg install --force --skiptests <package>
+```
+
+Build it:
+
+```bash
+sudo docker build -t my-zeek .
+```
+
+The `zeek` CLI always launches the upstream `activecm/zeek` image, so to use your custom build you'll need to run it directly with `docker`. See [Running without the CLI](#running-without-the-cli).
+
+> [!NOTE]
+> Packages with compiled plugins need build tools, which aren't in the base image. Install them (e.g. `RUN apk add --no-cache g++ make cmake bsd-compat-headers libpcap-dev openssl-dev zlib-dev`) before the `zkg install` step, plus any package-specific dependencies.
 
 #### Migrating from older versions
 
-In older versions of docker-zeek (v6 and prior), Zeek packages were managed using docker volumes. In v8, these volumes are unused and do not affect anything in your running container. They are safe to leave in place, but we advise cleaning them up with:
+In older versions of docker-zeek (v6 and prior), Zeek packages were managed using docker volumes. In v8, these volumes are unused.
+
+To check whether you previously installed custom packages with `zkg install`, list the contents of the script volume:
+
+```bash
+sudo docker run --rm -v zeek-zkg-script:/check alpine ls /check
+```
+
+The v6 defaults are `bro-interface-setup`, `bro-doctor`, `ja3`, and `zeek-open-connections`. Anything else is a package you added.
+
+- To keep using a custom package, bake it into your own image. See [Adding Custom Packages](#adding-custom-packages).
+- Otherwise, remove the unused volumes:
 
 ```bash
 sudo docker volume rm zeek-zkg-script zeek-zkg-plugin zeek-zkg-state
 ```
-
-If you previously added your own Zeek packages and want to keep using them in v8, see the custom image steps above for how to rebuild them.
 
 ### Custom Zeek Scripts
 
@@ -113,6 +135,59 @@ Zeek files live in `/opt/zeek/` by default. Change it with:
 export ZEEK_TOP_DIR=/your/path
 ```
 
+## Running without the CLI
+
+The container can run without the docker-zeek CLI. The examples below use the upstream `activecm/zeek:8.0.6` image; if you've built your own image (see [Adding Custom Packages](#adding-custom-packages)), substitute its name and tag wherever `activecm/zeek:8.0.6` appears.
+
+### Minimum command to capture traffic
+
+```bash
+docker run -e ZEEK_INTERFACE=eth0 \
+    --net=host --cap-add=NET_RAW --cap-add=NET_ADMIN \
+    activecm/zeek:8.0.6
+```
+
+This brings up Zeek and captures host traffic. The container runs and produces logs inside its own filesystem. Logs are NOT persisted: when the container is removed, all logs are lost.
+
+### Full setup with persistence
+
+A ready-to-use example is at [`docker-compose.example.yml`](docker-compose.example.yml).
+
+```yaml
+services:
+  zeek:
+    image: activecm/zeek:8.0.6
+    container_name: zeek
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    environment:
+      ZEEK_INTERFACE: eth0
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /opt/zeek/logs:/usr/local/zeek/logs
+      - /opt/zeek/spool:/usr/local/zeek/spool
+```
+
+To start it:
+
+```bash
+sudo docker compose up -d
+```
+
+What the extra pieces do:
+- `restart: unless-stopped` brings the container back if it crashes or the host reboots.
+- The `/opt/zeek/logs` and `/opt/zeek/spool` mounts together persist logs to the host. Live log files are written to `/usr/local/zeek/spool/<node>/`, rotated `.log.gz` files are in `/usr/local/zeek/logs/<date>/`. Both mounts are needed to access both.
+- The `/etc/localtime` mount makes log timestamps use the host timezone instead of UTC.
+
+### Notes
+
+Multiple interfaces are specified by comma-separating: `ZEEK_INTERFACE: eth0,eth1`. To override the auto-detected worker count, add `ZEEK_WORKERS: N`. To use your own custom node.cfg instead of the env-var path, replace the `ZEEK_INTERFACE` env var with a bind mount: `- /path/to/node.cfg:/usr/local/zeek/etc/node.cfg`.
+
+Only one Zeek container can run on the host at a time because of `network_mode: host` and Zeek's Prometheus telemetry binding to ports 9991 and 9992. If our CLI is already running a Zeek container, stop it first with `zeek stop`.
+
 ## Upgrading
 
 Stop the running container, replace the CLI binary, and start again:
@@ -126,11 +201,7 @@ sudo zeek start
 
 Your `node.cfg` and `networks.cfg` are preserved. If you customized `zeekctl.cfg` or `100-default.zeek`, your previous version is saved as `.bak`. Reapply your changes to the new file.
 
-If the CLI warns about orphaned zkg volumes from an older version: if you installed custom Zeek packages with `zkg install`, see [Migrating from older versions](#migrating-from-older-versions) first. Otherwise, remove them:
-
-```bash
-sudo docker volume rm zeek-zkg-script zeek-zkg-plugin zeek-zkg-state
-```
+If the CLI warns about orphaned zkg volumes from an older version, see [Migrating from older versions](#migrating-from-older-versions).
 
 After confirming the new container is working, free up disk space by removing the old image:
 

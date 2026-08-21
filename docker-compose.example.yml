@@ -7,9 +7,12 @@ services:
     cap_add:
       - NET_RAW
       - NET_ADMIN
+    userns_mode: keep-id
+    user: "${UID}:${GID}"
     environment:
       ZEEK_INTERFACE: eth0
+      TZ: local
     volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /opt/zeek/logs:/usr/local/zeek/logs
-      - /opt/zeek/spool:/usr/local/zeek/spool
+      # - /etc/localtime:/etc/localtime:ro,Z
+      - /opt/zeek/logs:/usr/local/zeek/logs:Z
+      - /opt/zeek/spool:/usr/local/zeek/spool:Z
